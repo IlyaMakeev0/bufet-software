@@ -1,0 +1,72 @@
+.sidebar {
+  width: 260px;
+  background: linear-gradient(180deg, #2c3e50 0%, #34495e 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+}
+
+.sidebar-header {
+  padding: 30px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-header h2 {
+  margin-bottom: 5px;
+}
+
+.sidebar-header .role {
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 20px 0;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 20px;
+  color: rgba(255,255,255,0.8);
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.sidebar-nav a:hover {
+  background: rgba(255,255,255,0.1);
+  color: white;
+}
+
+.sidebar-nav a.active {
+  background: rgba(76, 175, 80, 0.3);
+  color: white;
+  border-left: 4px solid var(--primary);
+}
+
+.sidebar-nav .icon {
+  font-size: 20px;
+}
+
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.logout {
+  display: block;
+  text-align: center;
+  padding: 12px;
+  color: rgba(255,255,255,0.8);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.logout:hover {
+  background: rgba(244, 67, 54, 0.2);
+  color: white;
+}
