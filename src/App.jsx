@@ -1,35 +1,59 @@
-import { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import StudentDashboard from './pages/Student/Dashboard'
-import CookDashboard from './pages/Cook/Dashboard'
-import AdminDashboard from './pages/Admin/Dashboard'
-import './styles/App.css'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import Home from './pages/Home'
+import StudentAuth from './pages/StudentAuth'
+import ChefAuth from './pages/ChefAuth'
+import AdminAuth from './pages/AdminAuth'
+import Dashboard from './pages/Dashboard'
 
 function App() {
   const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    checkAuth()
+  }, [])
+
+  const checkAuth = async () => {
+    try {
+      const res = await fetch('/api/auth/check')
+      if (res.ok) {
+        const data = await res.json()
+        setUser(data.user)
+      }
+    } catch (error) {
+      console.error('Auth check failed:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' })
+      setUser(null)
+    } catch (error) {
+      console.error('Logout failed:', error)
+    }
+  }
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '50px' }}>Загрузка...</div>
+  }
 
   return (
-    <Router>
+    <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login setUser={setUser} />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/student/*" element={<StudentAuth setUser={setUser} />} />
+        <Route path="/chef/*" element={<ChefAuth setUser={setUser} />} />
+        <Route path="/admin/*" element={<AdminAuth setUser={setUser} />} />
         <Route 
-          path="/student/*" 
-          element={user?.role === 'student' ? <StudentDashboard /> : <Navigate to="/login" />} 
+          path="/dashboard" 
+          element={user ? <Dashboard user={user} logout={logout} /> : <Navigate to="/" />} 
         />
-        <Route 
-          path="/cook/*" 
-          element={user?.role === 'cook' ? <CookDashboard /> : <Navigate to="/login" />} 
-        />
-        <Route 
-          path="/admin/*" 
-          element={user?.role === 'admin' ? <AdminDashboard /> : <Navigate to="/login" />} 
-        />
-        <Route path="/" element={<Navigate to="/login" />} />
       </Routes>
-    </Router>
+    </BrowserRouter>
   )
 }
 

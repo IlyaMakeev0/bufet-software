@@ -1,37 +1,40 @@
 import express from 'express'
-import database from '../database.js'
-import { authenticateToken } from '../middleware/auth.js'
+import { allQuery } from '../database.js'
 
 const router = express.Router()
 
-// Получить меню
-router.get('/', authenticateToken, (req, res) => {
+// Get menu
+router.get('/', async (req, res) => {
   try {
-    const items = database.prepare('SELECT * FROM menu_items WHERE available = 1').all()
+    const { date } = req.query
     
-    const menu = {
-      breakfast: items.filter(item => item.type === 'breakfast'),
-      lunch: items.filter(item => item.type === 'lunch')
+    let sql = 'SELECT * FROM menu WHERE available = 1'
+    const params = []
+    
+    if (date) {
+      sql += ' AND day = ?'
+      params.push(date)
     }
     
-    res.json(menu)
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// Добавить блюдо (только админ)
-router.post('/', authenticateToken, (req, res) => {
-  try {
-    const { name, type, price, allergens } = req.body
+    sql += ' ORDER BY day, meal_type'
     
-    const result = database.prepare(
-      'INSERT INTO menu_items (name, type, price, allergens) VALUES (?, ?, ?, ?)'
-    ).run(name, type, price, allergens || '')
+    const menu = await allQuery(sql, params)
     
-    res.status(201).json({ id: result.lastInsertRowid })
+    const formattedMenu = menu.map(item => ({
+      id: item.id,
+      day: item.day,
+      name: item.name,
+      description: item.description,
+      price: item.price,
+      mealType: item.meal_type,
+      available: item.available,
+      createdAt: item.created_at
+    }))
+    
+    res.json(formattedMenu)
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    console.error('Get menu error:', error)
+    res.status(500).json({ error: 'Ошибка получения меню' })
   }
 })
 

@@ -1,146 +1,174 @@
-import initSqlJs from 'sql.js'
-import fs from 'fs'
+import sqlite3 from 'sqlite3'
+import { v4 as uuidv4 } from 'uuid'
 
-let db
+const db = new sqlite3.Database('./school_canteen.db')
 
-async function initDatabase() {
-  const SQL = await initSqlJs()
-  
-  // Попытка загрузить существующую БД
-  try {
-    const buffer = fs.readFileSync('canteen.db')
-    db = new SQL.Database(buffer)
-    console.log('База данных загружена')
-  } catch {
-    // Создать новую БД
-    db = new SQL.Database()
-    console.log('Создана новая база данных')
-    
-    // Создание таблиц
-    db.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('student', 'cook', 'admin')),
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS allergens (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        allergen TEXT NOT NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS menu_items (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL CHECK(type IN ('breakfast', 'lunch')),
-        price REAL NOT NULL,
-        allergens TEXT,
-        available BOOLEAN DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS payments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        amount REAL NOT NULL,
-        type TEXT NOT NULL CHECK(type IN ('single', 'subscription')),
-        meal_type TEXT,
-        status TEXT DEFAULT 'completed',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        menu_item_id INTEGER NOT NULL,
-        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'completed')),
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS reviews (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        menu_item_id INTEGER NOT NULL,
-        rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
-        comment TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        FOREIGN KEY (menu_item_id) REFERENCES menu_items(id)
-      );
-
-      CREATE TABLE IF NOT EXISTS inventory (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        product_name TEXT NOT NULL,
-        quantity REAL NOT NULL,
-        unit TEXT NOT NULL,
-        min_quantity REAL NOT NULL,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS purchase_requests (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        cook_id INTEGER NOT NULL,
-        product_name TEXT NOT NULL,
-        quantity REAL NOT NULL,
-        unit TEXT NOT NULL,
-        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected')),
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (cook_id) REFERENCES users(id)
-      );
-    `)
-    
-    saveDatabase()
-  }
-  
+export function getDb() {
   return db
 }
 
-function saveDatabase() {
-  const data = db.export()
-  const buffer = Buffer.from(data)
-  fs.writeFileSync('canteen.db', buffer)
+export function initDatabase() {
+  console.log('🔄 Initializing database...')
+
+  db.serialize(() => {
+    // Drop existing tables
+    db.run('DROP TABLE IF EXISTS subscriptions')
+    db.run('DROP TABLE IF EXISTS issued_meals')
+    db.run('DROP TABLE IF EXISTS reviews')
+    db.run('DROP TABLE IF EXISTS orders')
+    db.run('DROP TABLE IF EXISTS menu')
+    db.run('DROP TABLE IF EXISTS users')
+
+    // Create users table
+    db.run(`
+      CREATE TABLE users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        phone TEXT,
+        class_name TEXT,
+        role TEXT NOT NULL DEFAULT 'student',
+        position TEXT,
+        balance REAL DEFAULT 1000,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    // Create menu table
+    db.run(`
+      CREATE TABLE menu (
+        id TEXT PRIMARY KEY,
+        day TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        price REAL NOT NULL,
+        meal_type TEXT NOT NULL,
+        available BOOLEAN DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    // Create orders table
+    db.run(`
+      CREATE TABLE orders (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        menu_id TEXT NOT NULL,
+        status TEXT DEFAULT 'ожидает оплаты',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (menu_id) REFERENCES menu(id)
+      )
+    `)
+
+    // Create reviews table
+    db.run(`
+      CREATE TABLE reviews (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        menu_id TEXT NOT NULL,
+        rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+        comment TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (menu_id) REFERENCES menu(id)
+      )
+    `)
+
+    // Create subscriptions table
+    db.run(`
+      CREATE TABLE subscriptions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        menu_id TEXT NOT NULL,
+        selected_dates TEXT NOT NULL,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        total_price REAL NOT NULL,
+        status TEXT DEFAULT 'активен',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (menu_id) REFERENCES menu(id)
+      )
+    `)
+
+    // Create issued_meals table
+    db.run(`
+      CREATE TABLE issued_meals (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        menu_id TEXT NOT NULL,
+        subscription_id TEXT,
+        issue_date TEXT NOT NULL,
+        meal_type TEXT NOT NULL,
+        issued_by TEXT,
+        status TEXT DEFAULT 'ожидает выдачи',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (menu_id) REFERENCES menu(id),
+        FOREIGN KEY (subscription_id) REFERENCES subscriptions(id)
+      )
+    `)
+
+    // Add sample menu for 30 days
+    const today = new Date()
+    const stmt = db.prepare(`
+      INSERT INTO menu (id, day, name, description, price, meal_type)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `)
+
+    for (let i = 0; i < 30; i++) {
+      const date = new Date(today)
+      date.setDate(date.getDate() + i)
+      const dateStr = date.toISOString().split('T')[0]
+
+      // Breakfast
+      stmt.run(uuidv4(), dateStr, 'Каша овсяная с ягодами', 'Полезный завтрак', 120, 'завтрак')
+      stmt.run(uuidv4(), dateStr, 'Сырники со сметаной', 'Домашние сырники', 140, 'завтрак')
+      stmt.run(uuidv4(), dateStr, 'Омлет с ветчиной', 'Сытный завтрак', 150, 'завтрак')
+
+      // Lunch
+      stmt.run(uuidv4(), dateStr, 'Суп куриный с лапшой', 'Ароматный суп', 150, 'обед')
+      stmt.run(uuidv4(), dateStr, 'Гречка с котлетой', 'Сытный обед', 180, 'обед')
+      stmt.run(uuidv4(), dateStr, 'Плов с говядиной', 'Традиционный плов', 200, 'обед')
+      stmt.run(uuidv4(), dateStr, 'Салат овощной', 'Свежие овощи', 90, 'обед')
+
+      // Snack
+      stmt.run(uuidv4(), dateStr, 'Творожная запеканка', 'Нежный десерт', 130, 'полдник')
+      stmt.run(uuidv4(), dateStr, 'Йогурт с фруктами', 'Легкий полдник', 100, 'полдник')
+    }
+
+    stmt.finalize()
+
+    console.log('✅ Database initialized successfully!')
+  })
 }
 
-// Обертки для совместимости с better-sqlite3 API
-export const prepare = (sql) => ({
-  run: (...params) => {
-    db.run(sql, params)
-    saveDatabase()
-    return { lastInsertRowid: db.exec('SELECT last_insert_rowid()')[0].values[0][0] }
-  },
-  get: (...params) => {
-    const result = db.exec(sql, params)
-    if (!result[0]) return null
-    const cols = result[0].columns
-    const vals = result[0].values[0]
-    if (!vals) return null
-    const obj = {}
-    cols.forEach((col, i) => obj[col] = vals[i])
-    return obj
-  },
-  all: (...params) => {
-    const result = db.exec(sql, params)
-    if (!result[0]) return []
-    const cols = result[0].columns
-    return result[0].values.map(vals => {
-      const obj = {}
-      cols.forEach((col, i) => obj[col] = vals[i])
-      return obj
+export function runQuery(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function(err) {
+      if (err) reject(err)
+      else resolve({ id: this.lastID, changes: this.changes })
     })
-  }
-})
-
-export const exec = (sql) => {
-  db.run(sql)
-  saveDatabase()
+  })
 }
 
-export default { prepare, exec, init: initDatabase }
+export function getQuery(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) reject(err)
+      else resolve(row)
+    })
+  })
+}
+
+export function allQuery(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) reject(err)
+      else resolve(rows)
+    })
+  })
+}
