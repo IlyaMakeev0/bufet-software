@@ -14,6 +14,9 @@
 - **[URLS.md](URLS.md)** - Все доступные URL адреса
 - **[VALIDATION_RULES.md](VALIDATION_RULES.md)** - Правила валидации
 - **[SECRET_CODES.md](SECRET_CODES.md)** - Коды подтверждения
+- **[SUBSCRIPTIONS_AND_BALANCE.md](SUBSCRIPTIONS_AND_BALANCE.md)** - Абонементы и пополнение баланса
+- **[STUDENT_FEATURES.md](STUDENT_FEATURES.md)** - Полный функционал для студентов
+- **[COMPLETE_FUNCTIONALITY.md](COMPLETE_FUNCTIONALITY.md)** - Проверка всех требований
 
 ---
 
@@ -71,6 +74,8 @@
 - Возможности → [README.md](README.md#возможности)
 - API Endpoints → [README.md](README.md#api-endpoints)
 - База данных → [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md#база-данных)
+- Абонементы → [SUBSCRIPTIONS_AND_BALANCE.md](SUBSCRIPTIONS_AND_BALANCE.md)
+- Пополнение баланса → [SUBSCRIPTIONS_AND_BALANCE.md](SUBSCRIPTIONS_AND_BALANCE.md#система-баланса)
 
 ### Разработка
 - Стандарты кода → [CONTRIBUTING.md](CONTRIBUTING.md#стандарты-кода)

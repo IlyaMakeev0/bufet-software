@@ -1,6 +1,7 @@
 import express from 'express'
 import session from 'express-session'
 import cors from 'cors'
+import os from 'os'
 import { initDatabase, getDb } from './database.js'
 import authRoutes from './routes/auth.js'
 import menuRoutes from './routes/menu.js'
@@ -8,6 +9,8 @@ import orderRoutes from './routes/orders.js'
 import subscriptionRoutes from './routes/subscriptions.js'
 import chefRoutes from './routes/chef.js'
 import adminRoutes from './routes/admin.js'
+import profileRoutes from './routes/profile.js'
+import reviewRoutes from './routes/reviews.js'
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -39,6 +42,8 @@ app.use('/api/orders', orderRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)
 app.use('/api/chef', chefRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/profile', profileRoutes)
+app.use('/api/reviews', reviewRoutes)
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on:`)
@@ -50,7 +55,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`   - http://127.0.0.1:${PORT}`)
   
   // Получить локальный IP
-  const os = require('os')
   const networkInterfaces = os.networkInterfaces()
   Object.keys(networkInterfaces).forEach(interfaceName => {
     networkInterfaces[interfaceName].forEach(iface => {

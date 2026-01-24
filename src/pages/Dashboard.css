@@ -193,3 +193,274 @@ tr:hover {
   background: #d4edda;
   color: #155724;
 }
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content h2 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 10px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-actions button {
+  flex: 1;
+}
+
+/* Subscription Styles */
+.subscription-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.subscription-info h3 {
+  color: #2c3e50;
+  margin-bottom: 5px;
+}
+
+.subscription-info p {
+  color: #7f8c8d;
+  margin: 5px 0;
+}
+
+.date-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.date-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px;
+  background: #f8f9fa;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.date-checkbox:hover {
+  background: #e9ecef;
+}
+
+.date-checkbox input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.date-checkbox input[type="checkbox"]:checked + span {
+  font-weight: bold;
+  color: #3498db;
+}
+
+.subscription-summary {
+  background: #e8f5e9;
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 15px;
+}
+
+.subscription-summary p {
+  margin: 5px 0;
+  color: #2c3e50;
+}
+
+.subscription-summary strong {
+  color: #27ae60;
+}
+
+/* Tabs Styles */
+.tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  padding: 12px 20px;
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.tab:hover {
+  border-color: #3498db;
+  background: #f8f9fa;
+}
+
+.tab.active {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+/* Rating Selector */
+.rating-selector {
+  display: flex;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 2em;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: all 0.3s;
+  padding: 5px;
+}
+
+.star-btn:hover {
+  opacity: 0.7;
+  transform: scale(1.2);
+}
+
+.star-btn.active {
+  opacity: 1;
+}
+
+/* Reviews List */
+.reviews-list {
+  display: grid;
+  gap: 15px;
+}
+
+.review-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 10px;
+  border: 2px solid #e9ecef;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.review-header h3 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.1em;
+}
+
+.review-rating {
+  font-size: 1.2em;
+}
+
+.review-comment {
+  color: #7f8c8d;
+  margin: 10px 0;
+  line-height: 1.5;
+}
+
+.review-date {
+  color: #95a5a6;
+  font-size: 0.85em;
+}
+
+/* Textarea Styles */
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 2px solid #e9ecef;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  transition: border-color 0.3s;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+/* Form Group Improvements */
+.form-group small {
+  display: block;
+  margin-top: 5px;
+  color: #7f8c8d;
+  font-size: 0.85em;
+}
+
+/* Checkbox Group Styles */
+.checkbox-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s;
+  user-select: none;
+}
+
+.checkbox-label:hover {
+  background: #e9ecef;
+  border-color: #3498db;
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+}
+
+.checkbox-label input[type="checkbox"]:checked + span {
+  font-weight: bold;
+  color: #3498db;
+}
+
+.checkbox-label span {
+  font-size: 14px;
+  color: #2c3e50;
+}

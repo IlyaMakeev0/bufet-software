@@ -94,4 +94,73 @@ router.post('/', async (req, res) => {
   }
 })
 
+// Get issued meals (for pickup)
+router.get('/issued-meals', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'student') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const issuedMeals = await allQuery(`
+      SELECT im.*, m.name as menu_name, m.meal_type
+      FROM issued_meals im
+      JOIN menu m ON im.menu_id = m.id
+      WHERE im.user_id = ?
+      ORDER BY im.created_at DESC
+    `, [req.session.user.id])
+
+    const formattedMeals = issuedMeals.map(meal => ({
+      id: meal.id,
+      menuId: meal.menu_id,
+      menuName: meal.menu_name,
+      mealType: meal.meal_type,
+      issueDate: meal.issue_date,
+      status: meal.status,
+      issuedBy: meal.issued_by,
+      createdAt: meal.created_at
+    }))
+
+    res.json(formattedMeals)
+  } catch (error) {
+    console.error('Get issued meals error:', error)
+    res.status(500).json({ error: 'Ошибка получения выданных блюд' })
+  }
+})
+
+// Mark meal as received
+router.put('/issued-meals/:mealId/receive', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'student') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { mealId } = req.params
+
+    // Check if meal exists and belongs to user
+    const meal = await getQuery(
+      'SELECT * FROM issued_meals WHERE id = ? AND user_id = ?',
+      [mealId, req.session.user.id]
+    )
+
+    if (!meal) {
+      return res.status(404).json({ error: 'Заказ не найден' })
+    }
+
+    if (meal.status === 'получен') {
+      return res.status(400).json({ error: 'Заказ уже отмечен как полученный' })
+    }
+
+    // Update status
+    await runQuery(
+      'UPDATE issued_meals SET status = ? WHERE id = ?',
+      ['получен', mealId]
+    )
+
+    res.json({ message: 'Заказ отмечен как полученный' })
+  } catch (error) {
+    console.error('Mark meal received error:', error)
+    res.status(500).json({ error: 'Ошибка отметки получения' })
+  }
+})
+
 export default router

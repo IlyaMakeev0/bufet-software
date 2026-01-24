@@ -109,7 +109,8 @@ function StudentRegister({ setUser }) {
     firstName: '',
     lastName: '',
     phone: '',
-    className: ''
+    className: '',
+    verificationCode: ''
   })
   const [error, setError] = useState('')
   const navigate = useNavigate()
@@ -262,6 +263,19 @@ function StudentRegister({ setUser }) {
               placeholder="10А"
             />
             <small style={{ color: '#7f8c8d' }}>От 1 до 5 символов. Примеры: 10А, 11Б, 9</small>
+          </div>
+          
+          <div className="form-group">
+            <label>Код подтверждения:</label>
+            <input 
+              type="text" 
+              name="verificationCode"
+              value={formData.verificationCode}
+              onChange={handleChange}
+              required 
+              placeholder="Введите код подтверждения"
+            />
+            <small style={{ color: '#7f8c8d' }}>Получите код у администратора школы</small>
           </div>
           
           <button type="submit" className="btn btn-success">Зарегистрироваться</button>

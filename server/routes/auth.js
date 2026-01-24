@@ -6,9 +6,10 @@ import { validatePhone, formatPhone, validateClassName, validatePosition } from 
 
 const router = express.Router()
 
-// Секретный код для подтверждения администраторов и поваров
+// Секретные коды для подтверждения
 const ADMIN_SECRET_CODE = 'ADMIN2024'
 const CHEF_SECRET_CODE = 'CHEF2024'
+const STUDENT_VERIFICATION_CODE = '1111' // Заглушка для подтверждения студентов
 
 // Check authentication
 router.get('/check', (req, res) => {
@@ -22,11 +23,21 @@ router.get('/check', (req, res) => {
 // Register
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, firstName, lastName, phone, className, position, role, secretCode } = req.body
+    const { email, password, firstName, lastName, phone, className, position, role, secretCode, verificationCode } = req.body
 
     // Validate required fields
     if (!email || !password || !firstName || !lastName || !phone || !role) {
       return res.status(400).json({ error: 'Все поля обязательны для заполнения' })
+    }
+
+    // Check verification code for students
+    if (role === 'student') {
+      if (!verificationCode) {
+        return res.status(400).json({ error: 'Введите код подтверждения' })
+      }
+      if (verificationCode !== STUDENT_VERIFICATION_CODE) {
+        return res.status(403).json({ error: 'Неверный код подтверждения' })
+      }
     }
 
     // Validate email
@@ -165,6 +176,43 @@ router.post('/logout', (req, res) => {
     }
     res.json({ message: 'Logged out successfully' })
   })
+})
+
+// Top up balance
+router.post('/topup', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'student') {
+      return res.status(401).json({ error: 'Только студенты могут пополнять баланс' })
+    }
+
+    const { amount } = req.body
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Сумма должна быть больше 0' })
+    }
+
+    if (amount > 10000) {
+      return res.status(400).json({ error: 'Максимальная сумма пополнения: 10000 ₽' })
+    }
+
+    // Get current balance
+    const user = await getQuery('SELECT balance FROM users WHERE id = ?', [req.session.user.id])
+    const newBalance = user.balance + amount
+
+    // Update balance
+    await runQuery('UPDATE users SET balance = ? WHERE id = ?', [newBalance, req.session.user.id])
+
+    // Update session
+    req.session.user.balance = newBalance
+
+    res.json({ 
+      message: 'Баланс успешно пополнен',
+      newBalance
+    })
+  } catch (error) {
+    console.error('Top up error:', error)
+    res.status(500).json({ error: 'Ошибка пополнения баланса' })
+  }
 })
 
 export default router

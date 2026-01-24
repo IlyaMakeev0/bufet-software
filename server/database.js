@@ -32,6 +32,8 @@ export function initDatabase() {
         role TEXT NOT NULL DEFAULT 'student',
         position TEXT,
         balance REAL DEFAULT 1000,
+        allergies TEXT,
+        food_preferences TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `)
