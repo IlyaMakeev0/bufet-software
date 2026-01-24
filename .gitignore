@@ -33,3 +33,9 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Docker
+.env.docker.local
+docker-compose.override.yml
+postgres_data/
+app_data/

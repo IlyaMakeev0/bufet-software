@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
       id: order.id,
       menuId: order.menu_id,
       menuName: order.menu_name,
-      price: order.price,
+      price: parseFloat(order.price) || 0,
       mealType: order.meal_type,
       status: order.status,
       createdAt: order.created_at
@@ -93,14 +93,16 @@ router.post('/', async (req, res) => {
       console.log('Processing payment...')
       // Get user balance
       const user = await getQuery('SELECT balance FROM users WHERE id = ?', [req.session.user.id])
-      console.log('User balance:', user.balance)
+      const userBalance = parseFloat(user.balance) || 0
+      const itemPrice = parseFloat(menuItem.price) || 0
+      console.log('User balance:', userBalance)
       
-      if (user.balance < menuItem.price) {
+      if (userBalance < itemPrice) {
         return res.status(400).json({ error: 'Недостаточно средств на балансе' })
       }
 
       // Update balance
-      newBalance = user.balance - menuItem.price
+      newBalance = userBalance - itemPrice
       console.log('New balance:', newBalance)
       await runQuery('UPDATE users SET balance = ? WHERE id = ?', [newBalance, req.session.user.id])
 

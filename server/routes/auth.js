@@ -158,7 +158,7 @@ router.post('/login', async (req, res) => {
       className: user.class_name,
       position: user.position,
       role: user.role,
-      balance: user.balance
+      balance: parseFloat(user.balance) || 0
     }
 
     res.json({ user: req.session.user })

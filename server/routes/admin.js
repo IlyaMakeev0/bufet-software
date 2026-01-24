@@ -67,7 +67,7 @@ router.get('/users', async (req, res) => {
       className: user.class_name,
       position: user.position,
       role: user.role,
-      balance: user.balance,
+      balance: parseFloat(user.balance) || 0,
       createdAt: user.created_at
     }))
 
@@ -102,7 +102,7 @@ router.get('/recent-orders', async (req, res) => {
       id: order.id,
       studentName: order.student_name,
       menuName: order.menu_name,
-      price: order.price,
+      price: parseFloat(order.price) || 0,
       status: order.status,
       createdAt: order.created_at
     }))

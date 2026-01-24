@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
       className: user.class_name,
       position: user.position,
       role: user.role,
-      balance: user.balance,
+      balance: parseFloat(user.balance) || 0,
       allergies: user.allergies || '',
       foodPreferences: user.food_preferences || ''
     })

@@ -8,7 +8,7 @@ router.get('/', async (req, res) => {
   try {
     const { date } = req.query
     
-    let sql = 'SELECT * FROM menu WHERE available = 1'
+    let sql = 'SELECT * FROM menu WHERE available = true'
     const params = []
     
     if (date) {
@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
       day: item.day,
       name: item.name,
       description: item.description,
-      price: item.price,
+      price: parseFloat(item.price) || 0,
       mealType: item.meal_type,
       available: item.available,
       createdAt: item.created_at

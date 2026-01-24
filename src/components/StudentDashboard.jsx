@@ -22,7 +22,7 @@ function StudentDashboard({ user }) {
   const [activeTab, setActiveTab] = useState('menu')
   const [notification, setNotification] = useState(null)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState('balance')
+  const [paymentMethod, setPaymentMethod] = useState('card')
   const [paymentAmount, setPaymentAmount] = useState(0)
   const [paymentProcessing, setPaymentProcessing] = useState(false)
   const [showQRCode, setShowQRCode] = useState(false)
@@ -543,24 +543,6 @@ function StudentDashboard({ user }) {
             </div>
 
             <div className="payment-methods">
-              <label className={`payment-method-card ${paymentMethod === 'balance' ? 'active' : ''}`}>
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="balance"
-                  checked={paymentMethod === 'balance'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  disabled={paymentProcessing}
-                />
-                <div className="payment-method-content">
-                  <div className="payment-icon">💰</div>
-                  <div className="payment-info">
-                    <div className="payment-name">Баланс</div>
-                    <div className="payment-description">Текущий баланс: {balance.toFixed(2)} ₽</div>
-                  </div>
-                </div>
-              </label>
-
               <label className={`payment-method-card ${paymentMethod === 'card' ? 'active' : ''}`}>
                 <input
                   type="radio"

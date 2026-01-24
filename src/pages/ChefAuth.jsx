@@ -278,10 +278,10 @@ function ChefRegister({ setUser }) {
               value={formData.secretCode}
               onChange={handleChange}
               required 
-              placeholder="Введите код: 2222"
+              placeholder="Введите код подтверждения"
             />
-            <small style={{ color: '#3498db', fontWeight: 'bold' }}>
-              💡 Для тестирования используйте код: <span style={{ color: '#e74c3c' }}>2222</span>
+            <small style={{ color: '#7f8c8d' }}>
+              Код выдается администрацией школы
             </small>
           </div>
           

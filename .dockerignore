@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+.env.local
+.vscode
+dist
+*.md
+!README.md
+school_canteen.db
+.DS_Store
+coverage
+.nyc_output
