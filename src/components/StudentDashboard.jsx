@@ -10,9 +10,8 @@ function StudentDashboard({ user }) {
   const [showTopUp, setShowTopUp] = useState(false)
   const [topUpAmount, setTopUpAmount] = useState('')
   const [showSubscription, setShowSubscription] = useState(false)
-  const [selectedMenuItem, setSelectedMenuItem] = useState(null)
-  const [subscriptionDates, setSubscriptionDates] = useState([])
-  const [subscriptionPeriod, setSubscriptionPeriod] = useState({ start: '', end: '' })
+  const [subscriptionType, setSubscriptionType] = useState('breakfast')
+  const [subscriptionDuration, setSubscriptionDuration] = useState(7)
   const [showProfile, setShowProfile] = useState(false)
   const [allergies, setAllergies] = useState('')
   const [foodPreferences, setFoodPreferences] = useState('')
@@ -21,6 +20,34 @@ function StudentDashboard({ user }) {
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewComment, setReviewComment] = useState('')
   const [activeTab, setActiveTab] = useState('menu')
+  const [notification, setNotification] = useState(null)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState('balance')
+  const [paymentAmount, setPaymentAmount] = useState(0)
+  const [paymentProcessing, setPaymentProcessing] = useState(false)
+  const [showQRCode, setShowQRCode] = useState(false)
+  const [showConfirmPayment, setShowConfirmPayment] = useState(false)
+  const [confirmPaymentData, setConfirmPaymentData] = useState(null)
+
+  // Показать уведомление
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type })
+    setTimeout(() => setNotification(null), 5000)
+  }
+
+  // Цены на абонементы
+  const subscriptionPrices = {
+    breakfast: {
+      7: 700,
+      14: 1300,
+      30: 2500
+    },
+    full: {
+      7: 2800,
+      14: 5200,
+      30: 10000
+    }
+  }
 
   useEffect(() => {
     loadData()
@@ -62,23 +89,66 @@ function StudentDashboard({ user }) {
 
   const createOrder = async (menuId) => {
     try {
+      // Проверяем аллергии
+      const menuItem = menu.find(item => item.id === menuId)
+      if (allergies && menuItem.description) {
+        const userAllergies = allergies.split(', ').map(a => a.toLowerCase())
+        const itemIngredients = menuItem.description.toLowerCase()
+        
+        const foundAllergy = userAllergies.find(allergy => 
+          itemIngredients.includes(allergy.toLowerCase())
+        )
+        
+        if (foundAllergy) {
+          showNotification(`⚠️ Внимание! Это блюдо содержит ${foundAllergy}, на который у вас аллергия!`, 'error')
+          return
+        }
+      }
+
+      // Проверяем, есть ли активный абонемент
+      const hasActiveSubscription = subscriptions.some(sub => {
+        const today = new Date().toISOString().split('T')[0]
+        const isActive = sub.status === 'активен' && 
+                        sub.startDate <= today && 
+                        sub.endDate >= today
+        
+        // Проверяем, покрывает ли абонемент этот тип питания
+        if (sub.subscriptionType === 'full') {
+          return isActive // Полный абонемент покрывает все
+        } else if (sub.subscriptionType === 'breakfast' && menuItem.mealType === 'завтрак') {
+          return isActive // Абонемент на завтрак покрывает только завтрак
+        }
+        return false
+      })
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ menuId })
+        body: JSON.stringify({ menuId, hasActiveSubscription })
       })
 
       if (res.ok) {
         const data = await res.json()
-        alert('Заказ создан успешно!')
-        setBalance(data.newBalance)
+        if (hasActiveSubscription) {
+          showNotification('✅ Заказ создан успешно! Оплата по абонементу.', 'success')
+        } else {
+          showNotification(`✅ Заказ создан успешно! Списано ${menuItem.price} ₽`, 'success')
+          setBalance(data.newBalance)
+        }
         loadData()
       } else {
         const error = await res.json()
-        alert(error.error || 'Ошибка создания заказа')
+        
+        // Если нужна оплата (уже заказывал по абонементу)
+        if (error.needsPayment) {
+          setConfirmPaymentData({ menuId, menuItem, errorMessage: error.error })
+          setShowConfirmPayment(true)
+        } else {
+          showNotification(error.error || 'Ошибка создания заказа', 'error')
+        }
       }
     } catch (error) {
-      alert('Ошибка подключения к серверу')
+      showNotification('Ошибка подключения к серверу', 'error')
     }
   }
 
@@ -87,61 +157,102 @@ function StudentDashboard({ user }) {
     const amount = parseFloat(topUpAmount)
 
     if (!amount || amount <= 0) {
-      alert('Введите корректную сумму')
+      showNotification('Введите корректную сумму', 'error')
       return
     }
 
     if (amount > 10000) {
-      alert('Максимальная сумма пополнения: 10000 ₽')
+      showNotification('Максимальная сумма пополнения: 10000 ₽', 'error')
       return
+    }
+
+    // Открываем модальное окно выбора способа оплаты
+    setPaymentAmount(amount)
+    setShowPaymentModal(true)
+    setShowTopUp(false)
+  }
+
+  const processPayment = async () => {
+    setPaymentProcessing(true)
+
+    // Симуляция обработки платежа
+    if (paymentMethod === 'card') {
+      showNotification('💳 Обработка платежа по карте...', 'warning')
+      await new Promise(resolve => setTimeout(resolve, 2000))
+    } else if (paymentMethod === 'qr') {
+      setShowQRCode(true)
+      showNotification('📱 Отсканируйте QR-код для оплаты', 'warning')
+      await new Promise(resolve => setTimeout(resolve, 3000))
+      setShowQRCode(false)
     }
 
     try {
       const res = await fetch('/api/auth/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount })
+        body: JSON.stringify({ amount: paymentAmount })
       })
 
       if (res.ok) {
         const data = await res.json()
         setBalance(data.newBalance)
         setTopUpAmount('')
-        setShowTopUp(false)
-        alert(`Баланс пополнен на ${amount} ₽`)
+        setShowPaymentModal(false)
+        setPaymentProcessing(false)
+        showNotification(`✅ Баланс пополнен на ${paymentAmount} ₽`, 'success')
       } else {
         const error = await res.json()
-        alert(error.error || 'Ошибка пополнения')
+        showNotification(error.error || 'Ошибка пополнения', 'error')
+        setPaymentProcessing(false)
       }
     } catch (error) {
-      alert('Ошибка подключения к серверу')
+      showNotification('Ошибка подключения к серверу', 'error')
+      setPaymentProcessing(false)
     }
   }
 
-  const openSubscriptionModal = (menuItem) => {
-    setSelectedMenuItem(menuItem)
+  const handleConfirmPayment = async () => {
+    if (!confirmPaymentData) return
+
+    try {
+      const payRes = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          menuId: confirmPaymentData.menuId, 
+          hasActiveSubscription: false 
+        })
+      })
+      
+      if (payRes.ok) {
+        const payData = await payRes.json()
+        showNotification(`✅ Заказ создан! Списано ${confirmPaymentData.menuItem.price} ₽`, 'success')
+        setBalance(payData.newBalance)
+        setShowConfirmPayment(false)
+        setConfirmPaymentData(null)
+        loadData()
+      } else {
+        const payError = await payRes.json()
+        showNotification(payError.error || 'Ошибка создания заказа', 'error')
+      }
+    } catch (error) {
+      showNotification('Ошибка подключения к серверу', 'error')
+    }
+  }
+
+  const openSubscriptionModal = () => {
     setShowSubscription(true)
-    setSubscriptionDates([])
-    setSubscriptionPeriod({ start: '', end: '' })
+    setSubscriptionType('breakfast')
+    setSubscriptionDuration(7)
   }
 
   const createSubscription = async (e) => {
     e.preventDefault()
 
-    if (!subscriptionPeriod.start || !subscriptionPeriod.end) {
-      alert('Выберите период абонемента')
-      return
-    }
-
-    if (subscriptionDates.length === 0) {
-      alert('Выберите хотя бы одну дату')
-      return
-    }
-
-    const totalPrice = selectedMenuItem.price * subscriptionDates.length
+    const totalPrice = subscriptionPrices[subscriptionType][subscriptionDuration]
 
     if (balance < totalPrice) {
-      alert('Недостаточно средств на балансе')
+      showNotification('Недостаточно средств на балансе', 'error')
       return
     }
 
@@ -150,10 +261,8 @@ function StudentDashboard({ user }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          menuId: selectedMenuItem.id,
-          selectedDates: subscriptionDates,
-          startDate: subscriptionPeriod.start,
-          endDate: subscriptionPeriod.end
+          subscriptionType,
+          durationDays: subscriptionDuration
         })
       })
 
@@ -161,23 +270,22 @@ function StudentDashboard({ user }) {
         const data = await res.json()
         setBalance(data.newBalance)
         setShowSubscription(false)
-        alert('Абонемент успешно оформлен!')
+        showNotification(`✅ Абонемент успешно оформлен! Списано: ${totalPrice} ₽`, 'success')
         loadData()
       } else {
         const error = await res.json()
-        alert(error.error || 'Ошибка создания абонемента')
+        showNotification(error.error || 'Ошибка создания абонемента', 'error')
       }
     } catch (error) {
-      alert('Ошибка подключения к серверу')
+      showNotification('Ошибка подключения к серверу', 'error')
     }
   }
 
   const generateDateRange = () => {
-    if (!subscriptionPeriod.start || !subscriptionPeriod.end) return []
-    
     const dates = []
-    const start = new Date(subscriptionPeriod.start)
-    const end = new Date(subscriptionPeriod.end)
+    const start = new Date()
+    const end = new Date()
+    end.setDate(end.getDate() + subscriptionDuration)
     
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       dates.push(d.toISOString().split('T')[0])
@@ -186,12 +294,8 @@ function StudentDashboard({ user }) {
     return dates
   }
 
-  const toggleDate = (date) => {
-    if (subscriptionDates.includes(date)) {
-      setSubscriptionDates(subscriptionDates.filter(d => d !== date))
-    } else {
-      setSubscriptionDates([...subscriptionDates, date])
-    }
+  const getSubscriptionTypeName = (type) => {
+    return type === 'breakfast' ? 'Только завтрак' : 'Завтрак + Обед + Полдник'
   }
 
   const handleUpdatePreferences = async (e) => {
@@ -206,13 +310,13 @@ function StudentDashboard({ user }) {
 
       if (res.ok) {
         setShowProfile(false)
-        alert('Предпочтения обновлены успешно!')
+        showNotification('✅ Предпочтения обновлены успешно!', 'success')
       } else {
         const error = await res.json()
-        alert(error.error || 'Ошибка обновления')
+        showNotification(error.error || 'Ошибка обновления', 'error')
       }
     } catch (error) {
-      alert('Ошибка подключения к серверу')
+      showNotification('Ошибка подключения к серверу', 'error')
     }
   }
 
@@ -223,14 +327,14 @@ function StudentDashboard({ user }) {
       })
 
       if (res.ok) {
-        alert('Заказ отмечен как полученный!')
+        showNotification('✅ Заказ отмечен как полученный!', 'success')
         loadData()
       } else {
         const error = await res.json()
-        alert(error.error || 'Ошибка отметки')
+        showNotification(error.error || 'Ошибка отметки', 'error')
       }
     } catch (error) {
-      alert('Ошибка подключения к серверу')
+      showNotification('Ошибка подключения к серверу', 'error')
     }
   }
 
@@ -257,14 +361,14 @@ function StudentDashboard({ user }) {
 
       if (res.ok) {
         setShowReview(false)
-        alert('Отзыв добавлен успешно!')
+        showNotification('✅ Отзыв добавлен успешно!', 'success')
         loadData()
       } else {
         const error = await res.json()
-        alert(error.error || 'Ошибка добавления отзыва')
+        showNotification(error.error || 'Ошибка добавления отзыва', 'error')
       }
     } catch (error) {
-      alert('Ошибка подключения к серверу')
+      showNotification('Ошибка подключения к серверу', 'error')
     }
   }
 
@@ -273,8 +377,43 @@ function StudentDashboard({ user }) {
     return item.day === today
   })
 
+  // Проверка активного абонемента
+  const getActiveSubscription = () => {
+    const today = new Date().toISOString().split('T')[0]
+    return subscriptions.find(sub => 
+      sub.status === 'активен' && 
+      sub.startDate <= today && 
+      sub.endDate >= today
+    )
+  }
+
+  const activeSubscription = getActiveSubscription()
+
+  // Проверка, покрывается ли блюдо абонементом
+  const isCoveredBySubscription = (mealType) => {
+    if (!activeSubscription) return false
+    if (activeSubscription.subscriptionType === 'full') return true
+    if (activeSubscription.subscriptionType === 'breakfast' && mealType === 'завтрак') return true
+    return false
+  }
+
   return (
     <div className="dashboard-content">
+      {/* Notification */}
+      {notification && (
+        <div className={`notification ${notification.type}`}>
+          <div className="notification-content">
+            {notification.message}
+          </div>
+          <button 
+            className="notification-close"
+            onClick={() => setNotification(null)}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-icon">💰</div>
@@ -299,6 +438,13 @@ function StudentDashboard({ user }) {
           <div className="stat-icon">🎫</div>
           <div className="stat-value">{subscriptions.length}</div>
           <div className="stat-label">Абонементов</div>
+          <button 
+            className="btn btn-success"
+            onClick={openSubscriptionModal}
+            style={{ marginTop: '10px', fontSize: '14px' }}
+          >
+            Купить
+          </button>
         </div>
 
         <div className="stat-card">
@@ -370,7 +516,7 @@ function StudentDashboard({ user }) {
               </div>
               <div className="modal-actions">
                 <button type="submit" className="btn btn-success">
-                  Пополнить
+                  Продолжить
                 </button>
                 <button 
                   type="button" 
@@ -385,69 +531,301 @@ function StudentDashboard({ user }) {
         </div>
       )}
 
+      {/* Payment Method Modal */}
+      {showPaymentModal && (
+        <div className="modal-overlay" onClick={() => !paymentProcessing && setShowPaymentModal(false)}>
+          <div className="modal-content payment-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>💳 Выберите способ оплаты</h2>
+            
+            <div className="payment-amount-display">
+              <span>Сумма к оплате:</span>
+              <strong>{paymentAmount} ₽</strong>
+            </div>
+
+            <div className="payment-methods">
+              <label className={`payment-method-card ${paymentMethod === 'balance' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="balance"
+                  checked={paymentMethod === 'balance'}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  disabled={paymentProcessing}
+                />
+                <div className="payment-method-content">
+                  <div className="payment-icon">💰</div>
+                  <div className="payment-info">
+                    <div className="payment-name">Баланс</div>
+                    <div className="payment-description">Текущий баланс: {balance.toFixed(2)} ₽</div>
+                  </div>
+                </div>
+              </label>
+
+              <label className={`payment-method-card ${paymentMethod === 'card' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="card"
+                  checked={paymentMethod === 'card'}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  disabled={paymentProcessing}
+                />
+                <div className="payment-method-content">
+                  <div className="payment-icon">💳</div>
+                  <div className="payment-info">
+                    <div className="payment-name">Банковская карта</div>
+                    <div className="payment-description">Visa, MasterCard, МИР</div>
+                  </div>
+                </div>
+              </label>
+
+              <label className={`payment-method-card ${paymentMethod === 'qr' ? 'active' : ''}`}>
+                <input
+                  type="radio"
+                  name="paymentMethod"
+                  value="qr"
+                  checked={paymentMethod === 'qr'}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  disabled={paymentProcessing}
+                />
+                <div className="payment-method-content">
+                  <div className="payment-icon">📱</div>
+                  <div className="payment-info">
+                    <div className="payment-name">QR-код</div>
+                    <div className="payment-description">СБП, Система Быстрых Платежей</div>
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            {showQRCode && (
+              <div className="qr-code-container">
+                <div className="qr-code-placeholder">
+                  <div className="qr-code-box">
+                    <div className="qr-pattern"></div>
+                  </div>
+                  <p>Отсканируйте QR-код в приложении банка</p>
+                  <div className="qr-loader">
+                    <div className="spinner"></div>
+                    <span>Ожидание оплаты...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button 
+                type="button"
+                className="btn btn-success"
+                onClick={processPayment}
+                disabled={paymentProcessing}
+              >
+                {paymentProcessing ? (
+                  <>
+                    <span className="btn-spinner"></span>
+                    Обработка...
+                  </>
+                ) : (
+                  `Оплатить ${paymentAmount} ₽`
+                )}
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-secondary"
+                onClick={() => setShowPaymentModal(false)}
+                disabled={paymentProcessing}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Payment Modal */}
+      {showConfirmPayment && confirmPaymentData && (
+        <div className="modal-overlay">
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>💳 Подтверждение оплаты</h2>
+            
+            <div className="confirm-payment-info">
+              <p>{confirmPaymentData.errorMessage}</p>
+              <div className="payment-details">
+                <div className="detail-row">
+                  <span>Блюдо:</span>
+                  <strong>{confirmPaymentData.menuItem.name}</strong>
+                </div>
+                <div className="detail-row">
+                  <span>Стоимость:</span>
+                  <strong>{confirmPaymentData.menuItem.price} ₽</strong>
+                </div>
+                <div className="detail-row">
+                  <span>Текущий баланс:</span>
+                  <strong>{balance.toFixed(2)} ₽</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                type="button"
+                className="btn btn-success"
+                onClick={handleConfirmPayment}
+              >
+                Оплатить из баланса
+              </button>
+              <button 
+                type="button" 
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowConfirmPayment(false)
+                  setConfirmPaymentData(null)
+                }}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Subscription Modal */}
-      {showSubscription && selectedMenuItem && (
+      {showSubscription && (
         <div className="modal-overlay" onClick={() => setShowSubscription(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>🎫 Оформление абонемента</h2>
-            <div className="subscription-info">
-              <h3>{selectedMenuItem.name}</h3>
-              <p>{selectedMenuItem.description}</p>
-              <p><strong>Цена за день:</strong> {selectedMenuItem.price} ₽</p>
-            </div>
+            
             <form onSubmit={createSubscription}>
               <div className="form-group">
-                <label>Период абонемента</label>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <input
-                    type="date"
-                    value={subscriptionPeriod.start}
-                    onChange={(e) => setSubscriptionPeriod({ ...subscriptionPeriod, start: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
-                    required
-                  />
-                  <input
-                    type="date"
-                    value={subscriptionPeriod.end}
-                    onChange={(e) => setSubscriptionPeriod({ ...subscriptionPeriod, end: e.target.value })}
-                    min={subscriptionPeriod.start || new Date().toISOString().split('T')[0]}
-                    required
-                  />
+                <label>Тип абонемента</label>
+                <div className="subscription-types">
+                  <label className={`subscription-type-card ${subscriptionType === 'breakfast' ? 'active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="subscriptionType"
+                      value="breakfast"
+                      checked={subscriptionType === 'breakfast'}
+                      onChange={(e) => setSubscriptionType(e.target.value)}
+                    />
+                    <div className="type-content">
+                      <div className="type-icon">🌅</div>
+                      <div className="type-name">Только завтрак</div>
+                      <div className="type-description">Завтрак каждый день</div>
+                    </div>
+                  </label>
+                  
+                  <label className={`subscription-type-card ${subscriptionType === 'full' ? 'active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="subscriptionType"
+                      value="full"
+                      checked={subscriptionType === 'full'}
+                      onChange={(e) => setSubscriptionType(e.target.value)}
+                    />
+                    <div className="type-content">
+                      <div className="type-icon">🍽️</div>
+                      <div className="type-name">Полный день</div>
+                      <div className="type-description">Завтрак + Обед + Полдник</div>
+                    </div>
+                  </label>
                 </div>
               </div>
 
-              {subscriptionPeriod.start && subscriptionPeriod.end && (
-                <div className="form-group">
-                  <label>Выберите дни ({subscriptionDates.length} выбрано)</label>
-                  <div className="date-grid">
-                    {generateDateRange().map(date => (
-                      <label key={date} className="date-checkbox">
-                        <input
-                          type="checkbox"
-                          checked={subscriptionDates.includes(date)}
-                          onChange={() => toggleDate(date)}
-                        />
-                        <span>{new Date(date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <div className="form-group">
+                <label>Длительность абонемента</label>
+                <div className="duration-options">
+                  <label className={`duration-card ${subscriptionDuration === 7 ? 'active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="duration"
+                      value="7"
+                      checked={subscriptionDuration === 7}
+                      onChange={(e) => setSubscriptionDuration(parseInt(e.target.value))}
+                    />
+                    <div className="duration-content">
+                      <div className="duration-days">7 дней</div>
+                      <div className="duration-price">{subscriptionPrices[subscriptionType][7]} ₽</div>
+                      <div className="duration-per-day">
+                        {(subscriptionPrices[subscriptionType][7] / 7).toFixed(0)} ₽/день
+                      </div>
+                    </div>
+                  </label>
 
-              {subscriptionDates.length > 0 && (
-                <div className="subscription-summary">
-                  <p><strong>Выбрано дней:</strong> {subscriptionDates.length}</p>
-                  <p><strong>Итого:</strong> {(selectedMenuItem.price * subscriptionDates.length).toFixed(2)} ₽</p>
+                  <label className={`duration-card ${subscriptionDuration === 14 ? 'active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="duration"
+                      value="14"
+                      checked={subscriptionDuration === 14}
+                      onChange={(e) => setSubscriptionDuration(parseInt(e.target.value))}
+                    />
+                    <div className="duration-content">
+                      <div className="duration-days">14 дней</div>
+                      <div className="duration-price">{subscriptionPrices[subscriptionType][14]} ₽</div>
+                      <div className="duration-per-day">
+                        {(subscriptionPrices[subscriptionType][14] / 14).toFixed(0)} ₽/день
+                      </div>
+                      <div className="duration-badge">Выгодно</div>
+                    </div>
+                  </label>
+
+                  <label className={`duration-card ${subscriptionDuration === 30 ? 'active' : ''}`}>
+                    <input
+                      type="radio"
+                      name="duration"
+                      value="30"
+                      checked={subscriptionDuration === 30}
+                      onChange={(e) => setSubscriptionDuration(parseInt(e.target.value))}
+                    />
+                    <div className="duration-content">
+                      <div className="duration-days">30 дней</div>
+                      <div className="duration-price">{subscriptionPrices[subscriptionType][30]} ₽</div>
+                      <div className="duration-per-day">
+                        {(subscriptionPrices[subscriptionType][30] / 30).toFixed(0)} ₽/день
+                      </div>
+                      <div className="duration-badge best">Лучшая цена</div>
+                    </div>
+                  </label>
                 </div>
-              )}
+              </div>
+
+              <div className="subscription-summary">
+                <div className="summary-row">
+                  <span>Тип:</span>
+                  <strong>{getSubscriptionTypeName(subscriptionType)}</strong>
+                </div>
+                <div className="summary-row">
+                  <span>Длительность:</span>
+                  <strong>{subscriptionDuration} дней</strong>
+                </div>
+                <div className="summary-row">
+                  <span>Начало:</span>
+                  <strong>{new Date().toLocaleDateString('ru-RU')}</strong>
+                </div>
+                <div className="summary-row">
+                  <span>Окончание:</span>
+                  <strong>
+                    {new Date(Date.now() + subscriptionDuration * 24 * 60 * 60 * 1000).toLocaleDateString('ru-RU')}
+                  </strong>
+                </div>
+                <div className="summary-row total">
+                  <span>Итого к оплате:</span>
+                  <strong className="total-price">{subscriptionPrices[subscriptionType][subscriptionDuration]} ₽</strong>
+                </div>
+                <div className="summary-note">
+                  💰 Деньги будут списаны с баланса сразу после оформления
+                </div>
+              </div>
 
               <div className="modal-actions">
                 <button 
                   type="submit" 
                   className="btn btn-success"
-                  disabled={subscriptionDates.length === 0}
+                  disabled={balance < subscriptionPrices[subscriptionType][subscriptionDuration]}
                 >
-                  Оформить абонемент
+                  {balance < subscriptionPrices[subscriptionType][subscriptionDuration] 
+                    ? 'Недостаточно средств' 
+                    : 'Оформить абонемент'}
                 </button>
                 <button 
                   type="button" 
@@ -774,45 +1152,79 @@ function StudentDashboard({ user }) {
 
       <div className="section">
         <h2>🍽️ Меню на сегодня</h2>
+        {activeSubscription && (
+          <div className="active-subscription-banner">
+            <div className="banner-icon">🎫</div>
+            <div className="banner-content">
+              <strong>У вас активен абонемент:</strong> {getSubscriptionTypeName(activeSubscription.subscriptionType)}
+              <br />
+              <small>Действует до: {new Date(activeSubscription.endDate).toLocaleDateString('ru-RU')}</small>
+            </div>
+          </div>
+        )}
         {todayMenu.length === 0 ? (
           <p>Меню на сегодня пока не доступно</p>
         ) : (
           <div className="menu-grid">
-            {todayMenu.map(item => (
-              <div key={item.id} className="menu-card">
-                <span className={`meal-type ${item.mealType}`}>
-                  {item.mealType === 'завтрак' ? '🌅 Завтрак' : 
-                   item.mealType === 'обед' ? '🍽️ Обед' : '🍪 Полдник'}
-                </span>
-                <h3>{item.name}</h3>
-                <p>{item.description}</p>
-                <div className="price">{item.price} ₽</div>
-                <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
-                  <button 
-                    className="btn btn-success"
-                    onClick={() => createOrder(item.id)}
-                    disabled={balance < item.price}
-                    style={{ flex: 1 }}
-                  >
-                    {balance < item.price ? 'Недостаточно средств' : 'Заказать'}
-                  </button>
-                  <button 
-                    className="btn btn-primary"
-                    onClick={() => openSubscriptionModal(item)}
-                    style={{ flex: 1 }}
-                  >
-                    🎫 Абонемент
-                  </button>
-                  <button 
-                    className="btn btn-secondary"
-                    onClick={() => openReviewModal(item)}
-                    style={{ flex: 1 }}
-                  >
-                    ⭐ Отзыв
-                  </button>
+            {todayMenu.map(item => {
+              const coveredBySubscription = isCoveredBySubscription(item.mealType)
+              
+              // Проверка аллергий
+              const hasAllergy = allergies && item.description ? 
+                allergies.split(', ').some(allergy => 
+                  item.description.toLowerCase().includes(allergy.toLowerCase())
+                ) : false
+
+              return (
+                <div key={item.id} className={`menu-card ${hasAllergy ? 'has-allergy' : ''}`}>
+                  <span className={`meal-type ${item.mealType}`}>
+                    {item.mealType === 'завтрак' ? '🌅 Завтрак' : 
+                     item.mealType === 'обед' ? '🍽️ Обед' : '🍪 Полдник'}
+                  </span>
+                  {coveredBySubscription && (
+                    <div className="subscription-badge">
+                      🎫 По абонементу
+                    </div>
+                  )}
+                  {hasAllergy && (
+                    <div className="allergy-badge">
+                      ⚠️ Аллергия
+                    </div>
+                  )}
+                  <h3>{item.name}</h3>
+                  <p className="menu-description">{item.description}</p>
+                  <div className="price">
+                    {coveredBySubscription ? (
+                      <>
+                        <span style={{ textDecoration: 'line-through', color: '#95a5a6' }}>{item.price} ₽</span>
+                        <span style={{ color: '#27ae60', marginLeft: '10px', fontWeight: 'bold' }}>Бесплатно</span>
+                      </>
+                    ) : (
+                      `${item.price} ₽`
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+                    <button 
+                      className="btn btn-success"
+                      onClick={() => createOrder(item.id)}
+                      disabled={hasAllergy}
+                      style={{ flex: 1 }}
+                      title={hasAllergy ? 'Содержит аллерген' : ''}
+                    >
+                      {hasAllergy ? '⚠️ Нельзя заказать' : 
+                       coveredBySubscription ? 'Заказать (бесплатно)' : 'Заказать'}
+                    </button>
+                    <button 
+                      className="btn btn-secondary"
+                      onClick={() => openReviewModal(item)}
+                      style={{ flex: 1 }}
+                    >
+                      ⭐ Отзыв
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -914,7 +1326,8 @@ function StudentDashboard({ user }) {
               <table>
                 <thead>
                   <tr>
-                    <th>Блюдо</th>
+                    <th>Тип</th>
+                    <th>Длительность</th>
                     <th>Период</th>
                     <th>Цена</th>
                     <th>Статус</th>
@@ -923,7 +1336,8 @@ function StudentDashboard({ user }) {
                 <tbody>
                   {subscriptions.map(sub => (
                     <tr key={sub.id}>
-                      <td>{sub.menuName}</td>
+                      <td>{getSubscriptionTypeName(sub.subscriptionType)}</td>
+                      <td>{sub.durationDays} дней</td>
                       <td>{sub.startDate} - {sub.endDate}</td>
                       <td>{sub.totalPrice} ₽</td>
                       <td>

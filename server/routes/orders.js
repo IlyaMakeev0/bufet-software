@@ -39,58 +39,105 @@ router.get('/', async (req, res) => {
 // Create order
 router.post('/', async (req, res) => {
   try {
+    console.log('=== Create Order Request ===')
+    console.log('User:', req.session.user)
+    console.log('Body:', req.body)
+
     if (!req.session.user || req.session.user.role !== 'student') {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    const { menuId } = req.body
+    const { menuId, hasActiveSubscription } = req.body
 
     if (!menuId) {
       return res.status(400).json({ error: 'Menu ID is required' })
     }
 
+    console.log('Getting menu item:', menuId)
     // Get menu item
     const menuItem = await getQuery('SELECT * FROM menu WHERE id = ?', [menuId])
+    console.log('Menu item:', menuItem)
+    
     if (!menuItem) {
       return res.status(404).json({ error: 'Блюдо не найдено' })
     }
 
-    // Get user balance
-    const user = await getQuery('SELECT balance FROM users WHERE id = ?', [req.session.user.id])
-    if (user.balance < menuItem.price) {
-      return res.status(400).json({ error: 'Недостаточно средств на балансе' })
+    const today = new Date().toISOString().split('T')[0]
+    console.log('Today:', today)
+
+    // Проверяем, заказывал ли уже это блюдо по абонементу сегодня
+    if (hasActiveSubscription) {
+      console.log('Checking existing subscription order...')
+      const existingOrder = await getQuery(`
+        SELECT o.* FROM orders o
+        JOIN menu m ON o.menu_id = m.id
+        WHERE o.user_id = ? 
+        AND m.meal_type = ? 
+        AND DATE(o.created_at) = ?
+        AND o.status = 'оплачен по абонементу'
+      `, [req.session.user.id, menuItem.meal_type, today])
+
+      if (existingOrder) {
+        console.log('Already ordered by subscription')
+        return res.status(400).json({ 
+          error: `Вы уже заказали ${menuItem.meal_type} по абонементу сегодня. Дополнительные заказы будут платными.`,
+          needsPayment: true
+        })
+      }
+    }
+
+    let newBalance = null
+
+    // Если нет активного абонемента или уже заказывал по абонементу, списываем деньги
+    if (!hasActiveSubscription) {
+      console.log('Processing payment...')
+      // Get user balance
+      const user = await getQuery('SELECT balance FROM users WHERE id = ?', [req.session.user.id])
+      console.log('User balance:', user.balance)
+      
+      if (user.balance < menuItem.price) {
+        return res.status(400).json({ error: 'Недостаточно средств на балансе' })
+      }
+
+      // Update balance
+      newBalance = user.balance - menuItem.price
+      console.log('New balance:', newBalance)
+      await runQuery('UPDATE users SET balance = ? WHERE id = ?', [newBalance, req.session.user.id])
+
+      // Update session
+      req.session.user.balance = newBalance
     }
 
     // Create order
+    console.log('Creating order...')
     const orderId = uuidv4()
+    const orderStatus = hasActiveSubscription ? 'оплачен по абонементу' : 'оплачен'
     await runQuery(`
       INSERT INTO orders (id, user_id, menu_id, status)
       VALUES (?, ?, ?, ?)
-    `, [orderId, req.session.user.id, menuId, 'оплачен'])
-
-    // Update balance
-    const newBalance = user.balance - menuItem.price
-    await runQuery('UPDATE users SET balance = ? WHERE id = ?', [newBalance, req.session.user.id])
-
-    // Update session
-    req.session.user.balance = newBalance
+    `, [orderId, req.session.user.id, menuId, orderStatus])
+    console.log('Order created:', orderId)
 
     // Create issued meal record
+    console.log('Creating issued meal...')
     const issuedMealId = uuidv4()
-    const today = new Date().toISOString().split('T')[0]
     await runQuery(`
       INSERT INTO issued_meals (id, user_id, menu_id, issue_date, meal_type, status)
       VALUES (?, ?, ?, ?, ?, ?)
     `, [issuedMealId, req.session.user.id, menuId, today, menuItem.meal_type, 'ожидает выдачи'])
+    console.log('Issued meal created:', issuedMealId)
 
+    console.log('=== Order Created Successfully ===')
     res.json({ 
-      message: 'Заказ создан успешно',
+      message: hasActiveSubscription ? 'Заказ создан по абонементу' : 'Заказ создан успешно',
       orderId,
-      newBalance
+      newBalance,
+      paidBySubscription: hasActiveSubscription
     })
   } catch (error) {
     console.error('Create order error:', error)
-    res.status(500).json({ error: 'Ошибка создания заказа' })
+    console.error('Error stack:', error.stack)
+    res.status(500).json({ error: 'Ошибка создания заказа: ' + error.message })
   }
 })
 

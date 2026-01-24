@@ -113,3 +113,44 @@ router.post('/issue-meal', async (req, res) => {
 })
 
 export default router
+
+
+// Get all students
+router.get('/students', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'chef') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const students = await allQuery(`
+      SELECT 
+        id,
+        email,
+        first_name,
+        last_name,
+        phone,
+        class_name,
+        allergies,
+        food_preferences
+      FROM users
+      WHERE role = 'student'
+      ORDER BY class_name, last_name, first_name
+    `)
+
+    const formattedStudents = students.map(student => ({
+      id: student.id,
+      email: student.email,
+      firstName: student.first_name,
+      lastName: student.last_name,
+      phone: student.phone,
+      className: student.class_name,
+      allergies: student.allergies,
+      foodPreferences: student.food_preferences
+    }))
+
+    res.json(formattedStudents)
+  } catch (error) {
+    console.error('Get students error:', error)
+    res.status(500).json({ error: 'Ошибка получения списка учеников' })
+  }
+})

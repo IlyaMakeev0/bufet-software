@@ -84,15 +84,14 @@ export function initDatabase() {
       CREATE TABLE subscriptions (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
-        menu_id TEXT NOT NULL,
-        selected_dates TEXT NOT NULL,
+        subscription_type TEXT NOT NULL,
+        duration_days INTEGER NOT NULL,
         start_date TEXT NOT NULL,
         end_date TEXT NOT NULL,
         total_price REAL NOT NULL,
         status TEXT DEFAULT 'активен',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id),
-        FOREIGN KEY (menu_id) REFERENCES menu(id)
+        FOREIGN KEY (user_id) REFERENCES users(id)
       )
     `)
 
@@ -127,19 +126,19 @@ export function initDatabase() {
       const dateStr = date.toISOString().split('T')[0]
 
       // Breakfast
-      stmt.run(uuidv4(), dateStr, 'Каша овсяная с ягодами', 'Полезный завтрак', 120, 'завтрак')
-      stmt.run(uuidv4(), dateStr, 'Сырники со сметаной', 'Домашние сырники', 140, 'завтрак')
-      stmt.run(uuidv4(), dateStr, 'Омлет с ветчиной', 'Сытный завтрак', 150, 'завтрак')
+      stmt.run(uuidv4(), dateStr, 'Каша овсяная с ягодами', 'Полезный завтрак. Состав: овсяные хлопья, молоко, ягоды (клубника, черника), мёд', 120, 'завтрак')
+      stmt.run(uuidv4(), dateStr, 'Сырники со сметаной', 'Домашние сырники. Состав: творог, яйца, мука, сахар, сметана', 140, 'завтрак')
+      stmt.run(uuidv4(), dateStr, 'Омлет с ветчиной', 'Сытный завтрак. Состав: яйца, молоко, ветчина, сыр, зелень', 150, 'завтрак')
 
       // Lunch
-      stmt.run(uuidv4(), dateStr, 'Суп куриный с лапшой', 'Ароматный суп', 150, 'обед')
-      stmt.run(uuidv4(), dateStr, 'Гречка с котлетой', 'Сытный обед', 180, 'обед')
-      stmt.run(uuidv4(), dateStr, 'Плов с говядиной', 'Традиционный плов', 200, 'обед')
-      stmt.run(uuidv4(), dateStr, 'Салат овощной', 'Свежие овощи', 90, 'обед')
+      stmt.run(uuidv4(), dateStr, 'Суп куриный с лапшой', 'Ароматный суп. Состав: курица, лапша, морковь, лук, зелень', 150, 'обед')
+      stmt.run(uuidv4(), dateStr, 'Гречка с котлетой', 'Сытный обед. Состав: гречка, котлета (говядина, свинина), лук, яйца, хлеб', 180, 'обед')
+      stmt.run(uuidv4(), dateStr, 'Плов с говядиной', 'Традиционный плов. Состав: рис, говядина, морковь, лук, масло растительное', 200, 'обед')
+      stmt.run(uuidv4(), dateStr, 'Салат овощной', 'Свежие овощи. Состав: помидоры, огурцы, перец, лук, масло растительное', 90, 'обед')
 
       // Snack
-      stmt.run(uuidv4(), dateStr, 'Творожная запеканка', 'Нежный десерт', 130, 'полдник')
-      stmt.run(uuidv4(), dateStr, 'Йогурт с фруктами', 'Легкий полдник', 100, 'полдник')
+      stmt.run(uuidv4(), dateStr, 'Творожная запеканка', 'Нежный десерт. Состав: творог, яйца, сахар, мука, изюм', 130, 'полдник')
+      stmt.run(uuidv4(), dateStr, 'Йогурт с фруктами', 'Легкий полдник. Состав: йогурт, фрукты (яблоко, банан, киви), мёд', 100, 'полдник')
     }
 
     stmt.finalize()

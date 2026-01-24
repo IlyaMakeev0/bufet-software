@@ -271,17 +271,17 @@ function ChefRegister({ setUser }) {
           </div>
           
           <div className="form-group">
-            <label>Код подтверждения:</label>
+            <label>Код подтверждения повара:</label>
             <input 
               type="password" 
               name="secretCode"
               value={formData.secretCode}
               onChange={handleChange}
               required 
-              placeholder="Введите код подтверждения повара"
+              placeholder="Введите код: 2222"
             />
-            <small style={{ color: '#e74c3c', fontWeight: 'bold' }}>
-              ⚠️ Код выдается администрацией школы
+            <small style={{ color: '#3498db', fontWeight: 'bold' }}>
+              💡 Для тестирования используйте код: <span style={{ color: '#e74c3c' }}>2222</span>
             </small>
           </div>
           

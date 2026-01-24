@@ -8,7 +8,7 @@ const router = express.Router()
 
 // Секретные коды для подтверждения
 const ADMIN_SECRET_CODE = 'ADMIN2024'
-const CHEF_SECRET_CODE = 'CHEF2024'
+const CHEF_SECRET_CODE = '2222' // Заглушка для регистрации повара
 const STUDENT_VERIFICATION_CODE = '1111' // Заглушка для подтверждения студентов
 
 // Check authentication
