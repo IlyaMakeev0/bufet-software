@@ -10,19 +10,21 @@
 
 ### Администратор
 ```
-Код: ADMIN2024
+Код: 0000
 ```
+⚠️ **Важно:** Код установлен как заглушка "0000" для упрощения регистрации.
 
 ### Повар
 ```
-Код: CHEF2024
+Код: 2222
 ```
+⚠️ **Важно:** Код установлен как заглушка "2222" для упрощения регистрации.
 
 ### Ученик
 ```
 Код: 1111
 ```
-⚠️ **Важно:** Код для учеников установлен как заглушка "1111" для упрощения регистрации.
+⚠️ **Важно:** Код установлен как заглушка "1111" для упрощения регистрации.
 
 ⚠️ **Важно:** Эти коды должны храниться в секрете и выдаваться только авторизованным лицам!
 
@@ -55,8 +57,8 @@
 
 ```javascript
 // Секретные коды для подтверждения
-const ADMIN_SECRET_CODE = 'ADMIN2024'
-const CHEF_SECRET_CODE = 'CHEF2024'
+const ADMIN_SECRET_CODE = '0000' // Заглушка для регистрации администратора
+const CHEF_SECRET_CODE = '2222' // Заглушка для регистрации повара
 const STUDENT_VERIFICATION_CODE = '1111' // Заглушка для подтверждения студентов
 ```
 
@@ -102,7 +104,7 @@ const STUDENT_VERIFICATION_CODE = '1111' // Заглушка для подтве
    - Имя и фамилия
    - Номер телефона (10-15 цифр)
    - Должность (2-50 символов)
-   - **Код подтверждения: ADMIN2024**
+   - **Код подтверждения: 0000**
 3. Нажать "Зарегистрироваться"
 
 ### Для повара
@@ -114,7 +116,7 @@ const STUDENT_VERIFICATION_CODE = '1111' // Заглушка для подтве
    - Имя и фамилия
    - Номер телефона (10-15 цифр)
    - Должность (2-50 символов)
-   - **Код подтверждения: CHEF2024**
+   - **Код подтверждения: 2222**
 3. Нажать "Зарегистрироваться"
 
 ### Для ученика
@@ -216,8 +218,9 @@ const STUDENT_VERIFICATION_CODE = '1111' // Заглушка для подтве
 ### Шаг 1: Создать файл .env
 
 ```env
-ADMIN_SECRET_CODE=ADMIN2024
-CHEF_SECRET_CODE=CHEF2024
+ADMIN_SECRET_CODE=0000
+CHEF_SECRET_CODE=2222
+STUDENT_VERIFICATION_CODE=1111
 ```
 
 ### Шаг 2: Установить dotenv
@@ -232,8 +235,9 @@ npm install dotenv
 import dotenv from 'dotenv'
 dotenv.config()
 
-const ADMIN_SECRET_CODE = process.env.ADMIN_SECRET_CODE || 'ADMIN2024'
-const CHEF_SECRET_CODE = process.env.CHEF_SECRET_CODE || 'CHEF2024'
+const ADMIN_SECRET_CODE = process.env.ADMIN_SECRET_CODE || '0000'
+const CHEF_SECRET_CODE = process.env.CHEF_SECRET_CODE || '2222'
+const STUDENT_VERIFICATION_CODE = process.env.STUDENT_VERIFICATION_CODE || '1111'
 ```
 
 ### Шаг 4: Добавить .env в .gitignore
@@ -317,8 +321,8 @@ const CHEF_SECRET_CODE = process.env.CHEF_SECRET_CODE || 'CHEF2024'
 | Роль | Код требуется? | Текущий код |
 |------|----------------|-------------|
 | Ученик | ✅ Да | 1111 |
-| Повар | ✅ Да | CHEF2024 |
-| Администратор | ✅ Да | ADMIN2024 |
+| Повар | ✅ Да | 2222 |
+| Администратор | ✅ Да | 0000 |
 
 ---
 

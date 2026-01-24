@@ -6,15 +6,30 @@ function ChefDashboard({ user }) {
   const [inventory, setInventory] = useState([])
   const [purchaseRequests, setPurchaseRequests] = useState([])
   const [students, setStudents] = useState([])
+  const [inventoryLog, setInventoryLog] = useState([])
+  const [lowStock, setLowStock] = useState([])
+  const [menuRequests, setMenuRequests] = useState([])
   const [activeTab, setActiveTab] = useState('pending')
   const [notification, setNotification] = useState(null)
   const [showInventoryModal, setShowInventoryModal] = useState(false)
   const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [showStudentModal, setShowStudentModal] = useState(false)
+  const [showLogModal, setShowLogModal] = useState(false)
+  const [showMenuRequestModal, setShowMenuRequestModal] = useState(false)
   const [selectedStudent, setSelectedStudent] = useState(null)
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState(null)
   const [searchStudent, setSearchStudent] = useState('')
-  const [newInventoryItem, setNewInventoryItem] = useState({ name: '', quantity: '', unit: 'кг' })
+  const [searchInventory, setSearchInventory] = useState('')
+  const [newInventoryItem, setNewInventoryItem] = useState({ name: '', quantity: '', unit: 'кг', minQuantity: 10 })
   const [newPurchaseRequest, setNewPurchaseRequest] = useState({ item: '', quantity: '', unit: 'кг', urgency: 'обычная' })
+  const [newMenuRequest, setNewMenuRequest] = useState({
+    name: '',
+    description: '',
+    price: '',
+    mealType: 'обед',
+    ingredients: []
+  })
+  const [newIngredient, setNewIngredient] = useState({ name: '', quantity: '', unit: 'кг' })
   const [stats, setStats] = useState({
     breakfastIssued: 0,
     lunchIssued: 0,
@@ -34,12 +49,14 @@ function ChefDashboard({ user }) {
 
   const loadData = async () => {
     try {
-      const [pendingRes, issuedRes, inventoryRes, purchaseRes, studentsRes] = await Promise.all([
+      const [pendingRes, issuedRes, inventoryRes, purchaseRes, studentsRes, lowStockRes, menuRequestsRes] = await Promise.all([
         fetch('/api/chef/pending-meals'),
         fetch('/api/chef/issued-today'),
         fetch('/api/chef/inventory'),
         fetch('/api/chef/purchase-requests'),
-        fetch('/api/chef/students')
+        fetch('/api/chef/students'),
+        fetch('/api/chef/inventory/low-stock'),
+        fetch('/api/chef/menu-requests')
       ])
 
       if (pendingRes.ok) setPendingMeals(await pendingRes.json())
@@ -62,6 +79,8 @@ function ChefDashboard({ user }) {
       if (inventoryRes.ok) setInventory(await inventoryRes.json())
       if (purchaseRes.ok) setPurchaseRequests(await purchaseRes.json())
       if (studentsRes.ok) setStudents(await studentsRes.json())
+      if (lowStockRes.ok) setLowStock(await lowStockRes.json())
+      if (menuRequestsRes.ok) setMenuRequests(await menuRequestsRes.json())
     } catch (error) {
       console.error('Failed to load data:', error)
     }
@@ -76,11 +95,15 @@ function ChefDashboard({ user }) {
       })
 
       if (res.ok) {
-        showNotification('✅ Блюдо выдано успешно!', 'success')
+        showNotification('✅ Блюдо выдано успешно! Ингредиенты списаны со склада', 'success')
         loadData()
       } else {
         const error = await res.json()
-        showNotification(error.error || 'Ошибка выдачи блюда', 'error')
+        if (error.details) {
+          showNotification(`❌ ${error.error}:\n${error.details.join('\n')}`, 'error')
+        } else {
+          showNotification(error.error || 'Ошибка выдачи блюда', 'error')
+        }
       }
     } catch (error) {
       showNotification('Ошибка подключения к серверу', 'error')
@@ -94,13 +117,18 @@ function ChefDashboard({ user }) {
       const res = await fetch('/api/chef/inventory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newInventoryItem)
+        body: JSON.stringify({
+          name: newInventoryItem.name,
+          quantity: newInventoryItem.quantity,
+          unit: newInventoryItem.unit,
+          minQuantity: newInventoryItem.minQuantity
+        })
       })
 
       if (res.ok) {
         showNotification('✅ Продукт добавлен на склад', 'success')
         setShowInventoryModal(false)
-        setNewInventoryItem({ name: '', quantity: '', unit: 'кг' })
+        setNewInventoryItem({ name: '', quantity: '', unit: 'кг', minQuantity: 10 })
         loadData()
       } else {
         const error = await res.json()
@@ -185,6 +213,20 @@ function ChefDashboard({ user }) {
     setShowStudentModal(true)
   }
 
+  const viewInventoryLog = async (item) => {
+    setSelectedInventoryItem(item)
+    setShowLogModal(true)
+    
+    try {
+      const res = await fetch(`/api/chef/inventory-log?inventoryId=${item.id}&limit=20`)
+      if (res.ok) {
+        setInventoryLog(await res.json())
+      }
+    } catch (error) {
+      console.error('Failed to load inventory log:', error)
+    }
+  }
+
   const filteredStudents = students.filter(student => {
     const searchLower = searchStudent.toLowerCase()
     return (
@@ -193,6 +235,66 @@ function ChefDashboard({ user }) {
       student.className.toLowerCase().includes(searchLower)
     )
   })
+
+  const filteredInventory = inventory.filter(item => {
+    const searchLower = searchInventory.toLowerCase()
+    return item.name.toLowerCase().includes(searchLower)
+  })
+
+  const addIngredient = () => {
+    if (!newIngredient.name || !newIngredient.quantity) {
+      showNotification('Заполните все поля ингредиента', 'error')
+      return
+    }
+
+    setNewMenuRequest({
+      ...newMenuRequest,
+      ingredients: [...newMenuRequest.ingredients, { ...newIngredient }]
+    })
+    setNewIngredient({ name: '', quantity: '', unit: 'кг' })
+  }
+
+  const removeIngredient = (index) => {
+    setNewMenuRequest({
+      ...newMenuRequest,
+      ingredients: newMenuRequest.ingredients.filter((_, i) => i !== index)
+    })
+  }
+
+  const createMenuRequest = async (e) => {
+    e.preventDefault()
+
+    if (newMenuRequest.ingredients.length === 0) {
+      showNotification('Добавьте хотя бы один ингредиент', 'error')
+      return
+    }
+
+    try {
+      const res = await fetch('/api/chef/menu-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMenuRequest)
+      })
+
+      if (res.ok) {
+        showNotification('✅ Заявка на добавление блюда отправлена администратору', 'success')
+        setShowMenuRequestModal(false)
+        setNewMenuRequest({
+          name: '',
+          description: '',
+          price: '',
+          mealType: 'обед',
+          ingredients: []
+        })
+        loadData()
+      } else {
+        const error = await res.json()
+        showNotification(error.error || 'Ошибка создания заявки', 'error')
+      }
+    } catch (error) {
+      showNotification('Ошибка подключения к серверу', 'error')
+    }
+  }
 
   return (
     <div className="dashboard-content">
@@ -235,6 +337,12 @@ function ChefDashboard({ user }) {
           <div className="stat-value">{stats.snackIssued}</div>
           <div className="stat-label">Полдников выдано</div>
         </div>
+
+        <div className={`stat-card ${lowStock.length > 0 ? 'warning' : ''}`}>
+          <div className="stat-icon">⚠️</div>
+          <div className="stat-value">{lowStock.length}</div>
+          <div className="stat-label">Мало на складе</div>
+        </div>
       </div>
 
       {/* Navigation Tabs */}
@@ -268,6 +376,12 @@ function ChefDashboard({ user }) {
           onClick={() => setActiveTab('purchase')}
         >
           🛒 Заявки на закупку ({purchaseRequests.length})
+        </button>
+        <button 
+          className={`tab ${activeTab === 'menu-requests' ? 'active' : ''}`}
+          onClick={() => setActiveTab('menu-requests')}
+        >
+          🍽️ Новые блюда ({menuRequests.length})
         </button>
       </div>
 
@@ -451,50 +565,136 @@ function ChefDashboard({ user }) {
         <div className="section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h2>📦 Склад продуктов</h2>
-            <button 
-              className="btn btn-primary"
-              onClick={() => setShowInventoryModal(true)}
-            >
-              + Добавить продукт
-            </button>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="🔍 Поиск продукта..."
+                value={searchInventory}
+                onChange={(e) => setSearchInventory(e.target.value)}
+                style={{
+                  padding: '10px 15px',
+                  border: '2px solid #e9ecef',
+                  borderRadius: '8px',
+                  width: '250px',
+                  fontSize: '14px'
+                }}
+              />
+              <button 
+                className="btn btn-primary"
+                onClick={() => setShowInventoryModal(true)}
+              >
+                + Добавить продукт
+              </button>
+            </div>
           </div>
+
+          {lowStock.length > 0 && (
+            <div style={{ 
+              background: '#fff3cd', 
+              border: '2px solid #ffc107', 
+              borderRadius: '12px', 
+              padding: '15px', 
+              marginBottom: '20px' 
+            }}>
+              <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>⚠️ Требуют пополнения ({lowStock.length})</h3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {lowStock.map(item => (
+                  <span 
+                    key={item.id} 
+                    style={{
+                      background: '#fff',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      border: '1px solid #ffc107'
+                    }}
+                  >
+                    {item.name}: {item.quantity} {item.unit} (мин: {item.min_quantity})
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           
-          {inventory.length === 0 ? (
+          {filteredInventory.length === 0 ? (
             <p>Склад пуст</p>
           ) : (
             <div className="inventory-grid">
-              {inventory.map(item => (
-                <div key={item.id} className={`inventory-card ${item.quantity < 10 ? 'low-stock' : ''}`}>
-                  <div className="inventory-header">
-                    <h3>{item.name}</h3>
-                    <button 
-                      className="btn-icon btn-danger"
-                      onClick={() => deleteInventoryItem(item.id)}
-                      title="Удалить"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                  <div className="inventory-quantity">
-                    <input
-                      type="number"
-                      value={item.quantity}
-                      onChange={(e) => updateInventoryQuantity(item.id, parseFloat(e.target.value))}
-                      min="0"
-                      step="0.1"
-                    />
-                    <span className="unit">{item.unit}</span>
-                  </div>
-                  {item.quantity < 10 && (
-                    <div className="low-stock-badge">
-                      ⚠️ Мало на складе
+              {filteredInventory.map(item => {
+                const isLow = item.quantity <= item.min_quantity
+                const percentage = (item.quantity / item.min_quantity) * 100
+                
+                return (
+                  <div key={item.id} className={`inventory-card ${isLow ? 'low-stock' : ''}`}>
+                    <div className="inventory-header">
+                      <h3>{item.name}</h3>
+                      <div style={{ display: 'flex', gap: '5px' }}>
+                        <button 
+                          className="btn-icon btn-info"
+                          onClick={() => viewInventoryLog(item)}
+                          title="История"
+                        >
+                          📊
+                        </button>
+                        <button 
+                          className="btn-icon btn-danger"
+                          onClick={() => deleteInventoryItem(item.id)}
+                          title="Удалить"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </div>
-                  )}
-                  <div className="inventory-date">
-                    Обновлено: {new Date(item.updatedAt).toLocaleDateString('ru-RU')}
+                    
+                    <div className="inventory-quantity">
+                      <input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateInventoryQuantity(item.id, parseFloat(e.target.value))}
+                        min="0"
+                        step="0.1"
+                      />
+                      <span className="unit">{item.unit}</span>
+                    </div>
+                    
+                    <div style={{ marginTop: '10px' }}>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        fontSize: '12px', 
+                        color: '#7f8c8d',
+                        marginBottom: '5px'
+                      }}>
+                        <span>Минимум: {item.min_quantity} {item.unit}</span>
+                        <span>{percentage.toFixed(0)}%</span>
+                      </div>
+                      <div style={{ 
+                        height: '6px', 
+                        background: '#ecf0f1', 
+                        borderRadius: '3px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{ 
+                          height: '100%', 
+                          width: `${Math.min(percentage, 100)}%`,
+                          background: isLow ? '#e74c3c' : percentage < 150 ? '#f39c12' : '#27ae60',
+                          transition: 'all 0.3s'
+                        }} />
+                      </div>
+                    </div>
+                    
+                    {isLow && (
+                      <div className="low-stock-badge">
+                        ⚠️ Мало на складе
+                      </div>
+                    )}
+                    
+                    <div className="inventory-date">
+                      Обновлено: {new Date(item.updated_at).toLocaleDateString('ru-RU')}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
@@ -511,6 +711,41 @@ function ChefDashboard({ user }) {
               + Создать заявку
             </button>
           </div>
+
+          {lowStock.length > 0 && (
+            <div style={{ 
+              background: '#e8f5e9', 
+              border: '2px solid #4caf50', 
+              borderRadius: '12px', 
+              padding: '15px', 
+              marginBottom: '20px' 
+            }}>
+              <h3 style={{ margin: '0 0 10px 0', color: '#2e7d32' }}>💡 Рекомендуем заказать</h3>
+              <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#558b2f' }}>
+                Следующие продукты заканчиваются на складе:
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {lowStock.map(item => (
+                  <button
+                    key={item.id}
+                    className="btn btn-sm btn-success"
+                    onClick={() => {
+                      setNewPurchaseRequest({
+                        item: item.name,
+                        quantity: (item.min_quantity * 2).toString(),
+                        unit: item.unit,
+                        urgency: item.quantity < item.min_quantity * 0.5 ? 'срочная' : 'высокая'
+                      })
+                      setShowPurchaseModal(true)
+                    }}
+                    style={{ fontSize: '13px' }}
+                  >
+                    + {item.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           
           {purchaseRequests.length === 0 ? (
             <p>Нет заявок на закупку</p>
@@ -528,8 +763,8 @@ function ChefDashboard({ user }) {
                 </thead>
                 <tbody>
                   {purchaseRequests.map(request => (
-                    <tr key={request.id}>
-                      <td>{request.item}</td>
+                    <tr key={request.id} className={request.urgency === 'срочная' ? 'urgent-row' : ''}>
+                      <td><strong>{request.item}</strong></td>
                       <td>{request.quantity} {request.unit}</td>
                       <td>
                         <span className={`urgency-badge ${request.urgency}`}>
@@ -542,7 +777,13 @@ function ChefDashboard({ user }) {
                           {request.status}
                         </span>
                       </td>
-                      <td>{new Date(request.createdAt).toLocaleDateString('ru-RU')}</td>
+                      <td>{new Date(request.created_at).toLocaleDateString('ru-RU', { 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -552,11 +793,91 @@ function ChefDashboard({ user }) {
         </div>
       )}
 
+      {activeTab === 'menu-requests' && (
+        <div className="section">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2>🍽️ Заявки на новые блюда</h2>
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowMenuRequestModal(true)}
+            >
+              + Предложить блюдо
+            </button>
+          </div>
+
+          <div style={{ 
+            background: '#e3f2fd', 
+            border: '2px solid #2196f3', 
+            borderRadius: '12px', 
+            padding: '15px', 
+            marginBottom: '20px' 
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', color: '#1565c0' }}>💡 Как это работает</h3>
+            <p style={{ margin: '0', fontSize: '14px', color: '#1976d2' }}>
+              Вы можете предложить новое блюдо для меню. Укажите название, описание, цену и подробный состав с количеством ингредиентов. 
+              Администратор рассмотрит вашу заявку и при одобрении добавит блюдо в меню.
+            </p>
+          </div>
+          
+          {menuRequests.length === 0 ? (
+            <p>У вас пока нет заявок на добавление блюд</p>
+          ) : (
+            <div className="menu-requests-grid">
+              {menuRequests.map(request => (
+                <div key={request.id} className={`menu-request-card status-${request.status}`}>
+                  <div className="menu-request-header">
+                    <h3>{request.name}</h3>
+                    <span className={`status-badge ${request.status}`}>
+                      {request.status}
+                    </span>
+                  </div>
+                  
+                  <div className="menu-request-details">
+                    <p><strong>Описание:</strong> {request.description}</p>
+                    <p><strong>Цена:</strong> {request.price} ₽</p>
+                    <p><strong>Тип:</strong> <span className={`meal-type ${request.mealType}`}>{request.mealType}</span></p>
+                    
+                    <div style={{ marginTop: '15px' }}>
+                      <strong>Состав:</strong>
+                      <ul style={{ marginTop: '5px', paddingLeft: '20px' }}>
+                        {request.ingredients.map((ing, idx) => (
+                          <li key={idx}>{ing.name}: {ing.quantity} {ing.unit}</li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {request.adminComment && (
+                      <div style={{ 
+                        marginTop: '15px', 
+                        padding: '10px', 
+                        background: '#fff3cd', 
+                        borderRadius: '8px',
+                        borderLeft: '4px solid #ffc107'
+                      }}>
+                        <strong>Комментарий администратора:</strong>
+                        <p style={{ margin: '5px 0 0 0' }}>{request.adminComment}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="menu-request-footer">
+                    <small>Создано: {new Date(request.createdAt).toLocaleDateString('ru-RU')}</small>
+                    {request.reviewedAt && (
+                      <small>Рассмотрено: {new Date(request.reviewedAt).toLocaleDateString('ru-RU')}</small>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Inventory Modal */}
       {showInventoryModal && (
         <div className="modal-overlay" onClick={() => setShowInventoryModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>📦 Добавить продукт</h2>
+            <h2>📦 Добавить продукт на склад</h2>
             <form onSubmit={addInventoryItem}>
               <div className="form-group">
                 <label>Название продукта</label>
@@ -590,7 +911,21 @@ function ChefDashboard({ user }) {
                   <option value="л">л</option>
                   <option value="шт">шт</option>
                   <option value="упак">упак</option>
+                  <option value="г">г</option>
+                  <option value="мл">мл</option>
                 </select>
+              </div>
+              <div className="form-group">
+                <label>Минимальный остаток (для уведомлений)</label>
+                <input
+                  type="number"
+                  value={newInventoryItem.minQuantity}
+                  onChange={(e) => setNewInventoryItem({...newInventoryItem, minQuantity: e.target.value})}
+                  placeholder="10"
+                  min="0"
+                  step="0.1"
+                  required
+                />
               </div>
               <div className="modal-actions">
                 <button type="submit" className="btn btn-success">
@@ -738,6 +1073,229 @@ function ChefDashboard({ user }) {
                 Закрыть
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Inventory Log Modal */}
+      {showLogModal && selectedInventoryItem && (
+        <div className="modal-overlay" onClick={() => setShowLogModal(false)}>
+          <div className="modal-content" style={{ maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
+            <h2>📊 История: {selectedInventoryItem.name}</h2>
+            
+            <div style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <strong>Текущий остаток:</strong> {selectedInventoryItem.quantity} {selectedInventoryItem.unit}
+                </div>
+                <div>
+                  <strong>Минимум:</strong> {selectedInventoryItem.min_quantity} {selectedInventoryItem.unit}
+                </div>
+              </div>
+            </div>
+
+            {inventoryLog.length === 0 ? (
+              <p>История изменений пуста</p>
+            ) : (
+              <div className="table-container" style={{ maxHeight: '400px', overflow: 'auto' }}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Дата</th>
+                      <th>Действие</th>
+                      <th>Изменение</th>
+                      <th>Было</th>
+                      <th>Стало</th>
+                      <th>Причина</th>
+                      <th>Кто</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {inventoryLog.map(log => (
+                      <tr key={log.id}>
+                        <td>{new Date(log.createdAt).toLocaleString('ru-RU')}</td>
+                        <td>
+                          <span className={`action-badge ${log.action}`}>
+                            {log.action === 'списание' ? '📉' : '📈'} {log.action}
+                          </span>
+                        </td>
+                        <td style={{ 
+                          color: log.quantityChange < 0 ? '#e74c3c' : '#27ae60',
+                          fontWeight: 'bold'
+                        }}>
+                          {log.quantityChange > 0 ? '+' : ''}{log.quantityChange}
+                        </td>
+                        <td>{log.quantityBefore}</td>
+                        <td>{log.quantityAfter}</td>
+                        <td style={{ fontSize: '12px', color: '#7f8c8d' }}>{log.reason || '-'}</td>
+                        <td>{log.createdBy || 'Система'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button 
+                type="button" 
+                className="btn btn-primary"
+                onClick={() => setShowLogModal(false)}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Menu Request Modal */}
+      {showMenuRequestModal && (
+        <div className="modal-overlay" onClick={() => setShowMenuRequestModal(false)}>
+          <div className="modal-content" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
+            <h2>🍽️ Предложить новое блюдо</h2>
+            <form onSubmit={createMenuRequest}>
+              <div className="form-group">
+                <label>Название блюда *</label>
+                <input
+                  type="text"
+                  value={newMenuRequest.name}
+                  onChange={(e) => setNewMenuRequest({...newMenuRequest, name: e.target.value})}
+                  placeholder="Например: Борщ украинский"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Описание</label>
+                <textarea
+                  value={newMenuRequest.description}
+                  onChange={(e) => setNewMenuRequest({...newMenuRequest, description: e.target.value})}
+                  placeholder="Краткое описание блюда"
+                  rows="3"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Цена (₽) *</label>
+                <input
+                  type="number"
+                  value={newMenuRequest.price}
+                  onChange={(e) => setNewMenuRequest({...newMenuRequest, price: e.target.value})}
+                  placeholder="0"
+                  min="0"
+                  step="0.01"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Тип приема пищи *</label>
+                <select
+                  value={newMenuRequest.mealType}
+                  onChange={(e) => setNewMenuRequest({...newMenuRequest, mealType: e.target.value})}
+                >
+                  <option value="завтрак">Завтрак</option>
+                  <option value="обед">Обед</option>
+                  <option value="полдник">Полдник</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Состав блюда *</label>
+                <div style={{ 
+                  background: '#f8f9fa', 
+                  padding: '15px', 
+                  borderRadius: '8px',
+                  marginBottom: '10px'
+                }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: '10px', alignItems: 'end' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', marginBottom: '5px', display: 'block' }}>Ингредиент</label>
+                      <input
+                        type="text"
+                        value={newIngredient.name}
+                        onChange={(e) => setNewIngredient({...newIngredient, name: e.target.value})}
+                        placeholder="Название"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', marginBottom: '5px', display: 'block' }}>Количество</label>
+                      <input
+                        type="number"
+                        value={newIngredient.quantity}
+                        onChange={(e) => setNewIngredient({...newIngredient, quantity: e.target.value})}
+                        placeholder="0"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '12px', marginBottom: '5px', display: 'block' }}>Ед. изм.</label>
+                      <select
+                        value={newIngredient.unit}
+                        onChange={(e) => setNewIngredient({...newIngredient, unit: e.target.value})}
+                      >
+                        <option value="кг">кг</option>
+                        <option value="г">г</option>
+                        <option value="л">л</option>
+                        <option value="мл">мл</option>
+                        <option value="шт">шт</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-success"
+                      onClick={addIngredient}
+                    >
+                      + Добавить
+                    </button>
+                  </div>
+                </div>
+
+                {newMenuRequest.ingredients.length > 0 && (
+                  <div style={{ marginTop: '10px' }}>
+                    <strong>Добавленные ингредиенты:</strong>
+                    <ul style={{ marginTop: '10px', listStyle: 'none', padding: 0 }}>
+                      {newMenuRequest.ingredients.map((ing, idx) => (
+                        <li key={idx} style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          padding: '8px 12px',
+                          background: '#e8f5e9',
+                          borderRadius: '6px',
+                          marginBottom: '5px'
+                        }}>
+                          <span>{ing.name}: {ing.quantity} {ing.unit}</span>
+                          <button
+                            type="button"
+                            className="btn-icon btn-danger"
+                            onClick={() => removeIngredient(idx)}
+                            style={{ fontSize: '14px' }}
+                          >
+                            ✕
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div className="modal-actions">
+                <button type="submit" className="btn btn-success">
+                  Отправить заявку
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={() => setShowMenuRequestModal(false)}
+                >
+                  Отмена
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

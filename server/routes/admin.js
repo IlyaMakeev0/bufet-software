@@ -1,5 +1,6 @@
 import express from 'express'
-import { getQuery, allQuery } from '../database.js'
+import { getQuery, allQuery, runQuery } from '../database.js'
+import { v4 as uuidv4 } from 'uuid'
 
 const router = express.Router()
 
@@ -34,10 +35,10 @@ router.get('/stats', async (req, res) => {
     `, [today])
 
     res.json({
-      totalUsers: usersCount.count,
-      totalOrders: ordersCount.count,
-      totalRevenue: revenue.total || 0,
-      todayMeals: todayMeals.count
+      totalUsers: usersCount.count || 0,
+      totalOrders: ordersCount.count || 0,
+      totalRevenue: parseFloat(revenue.total) || 0,
+      todayMeals: todayMeals.count || 0
     })
   } catch (error) {
     console.error('Get stats error:', error)
@@ -111,6 +112,277 @@ router.get('/recent-orders', async (req, res) => {
   } catch (error) {
     console.error('Get recent orders error:', error)
     res.status(500).json({ error: 'Ошибка получения заказов' })
+  }
+})
+
+// Get all purchase requests
+router.get('/purchase-requests', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const requests = await allQuery(`
+      SELECT 
+        pr.*,
+        u.first_name || ' ' || u.last_name as created_by_name
+      FROM purchase_requests pr
+      JOIN users u ON pr.created_by = u.id
+      ORDER BY 
+        CASE urgency
+          WHEN 'срочная' THEN 1
+          WHEN 'высокая' THEN 2
+          ELSE 3
+        END,
+        pr.created_at DESC
+    `)
+
+    const formattedRequests = requests.map(req => ({
+      id: req.id,
+      item: req.item,
+      quantity: parseFloat(req.quantity),
+      unit: req.unit,
+      urgency: req.urgency,
+      status: req.status,
+      createdByName: req.created_by_name,
+      createdAt: req.created_at
+    }))
+
+    res.json(formattedRequests)
+  } catch (error) {
+    console.error('Get purchase requests error:', error)
+    res.status(500).json({ error: 'Ошибка получения заявок' })
+  }
+})
+
+// Update purchase request status
+router.put('/purchase-requests/:id', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { id } = req.params
+    const { status } = req.body
+
+    if (!status) {
+      return res.status(400).json({ error: 'Статус обязателен' })
+    }
+
+    await runQuery(`
+      UPDATE purchase_requests 
+      SET status = ?
+      WHERE id = ?
+    `, [status, id])
+
+    res.json({ message: 'Статус заявки обновлен' })
+  } catch (error) {
+    console.error('Update purchase request error:', error)
+    res.status(500).json({ error: 'Ошибка обновления заявки' })
+  }
+})
+
+// Get all menu requests
+router.get('/menu-requests', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const requests = await allQuery(`
+      SELECT 
+        mr.*,
+        u.first_name || ' ' || u.last_name as created_by_name
+      FROM menu_requests mr
+      JOIN users u ON mr.created_by = u.id
+      ORDER BY 
+        CASE status
+          WHEN 'ожидает' THEN 1
+          WHEN 'одобрена' THEN 2
+          ELSE 3
+        END,
+        mr.created_at DESC
+    `)
+
+    const formattedRequests = requests.map(req => ({
+      id: req.id,
+      name: req.name,
+      description: req.description,
+      price: parseFloat(req.price),
+      mealType: req.meal_type,
+      ingredients: req.ingredients,
+      status: req.status,
+      adminComment: req.admin_comment,
+      createdByName: req.created_by_name,
+      createdAt: req.created_at,
+      reviewedAt: req.reviewed_at
+    }))
+
+    res.json(formattedRequests)
+  } catch (error) {
+    console.error('Get menu requests error:', error)
+    res.status(500).json({ error: 'Ошибка получения заявок' })
+  }
+})
+
+// Approve menu request
+router.post('/menu-requests/:id/approve', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { id } = req.params
+    const { adminComment, startDate, endDate } = req.body
+
+    // Get request details
+    const request = await getQuery(`
+      SELECT * FROM menu_requests WHERE id = ?
+    `, [id])
+
+    if (!request) {
+      return res.status(404).json({ error: 'Заявка не найдена' })
+    }
+
+    // Create menu items for date range
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const ingredients = request.ingredients // JSONB already parsed by PostgreSQL
+
+    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+      const dateStr = date.toISOString().split('T')[0]
+      const menuId = uuidv4()
+
+      // Add menu item
+      await runQuery(`
+        INSERT INTO menu (id, day, name, description, price, meal_type)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [menuId, dateStr, request.name, request.description, request.price, request.meal_type])
+
+      // Add ingredients
+      for (const ingredient of ingredients) {
+        await runQuery(`
+          INSERT INTO menu_ingredients (id, menu_id, ingredient_name, quantity, unit)
+          VALUES (?, ?, ?, ?, ?)
+        `, [uuidv4(), menuId, ingredient.name, ingredient.quantity, ingredient.unit])
+      }
+    }
+
+    // Update request status
+    await runQuery(`
+      UPDATE menu_requests 
+      SET status = 'одобрена', 
+          admin_comment = ?,
+          reviewed_by = ?,
+          reviewed_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [adminComment, req.session.user.id, id])
+
+    res.json({ message: 'Заявка одобрена, блюдо добавлено в меню' })
+  } catch (error) {
+    console.error('Approve menu request error:', error)
+    res.status(500).json({ error: 'Ошибка одобрения заявки' })
+  }
+})
+
+// Reject menu request
+router.post('/menu-requests/:id/reject', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { id } = req.params
+    const { adminComment } = req.body
+
+    await runQuery(`
+      UPDATE menu_requests 
+      SET status = 'отклонена',
+          admin_comment = ?,
+          reviewed_by = ?,
+          reviewed_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [adminComment, req.session.user.id, id])
+
+    res.json({ message: 'Заявка отклонена' })
+  } catch (error) {
+    console.error('Reject menu request error:', error)
+    res.status(500).json({ error: 'Ошибка отклонения заявки' })
+  }
+})
+
+// Get reports
+router.get('/reports', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { startDate, endDate } = req.query
+
+    // Revenue report
+    const revenue = await getQuery(`
+      SELECT 
+        COUNT(*) as total_orders,
+        SUM(m.price) as total_revenue
+      FROM orders o
+      JOIN menu m ON o.menu_id = m.id
+      WHERE o.status = 'оплачен'
+      ${startDate ? 'AND DATE(o.created_at) >= ?' : ''}
+      ${endDate ? 'AND DATE(o.created_at) <= ?' : ''}
+    `, [startDate, endDate].filter(Boolean))
+
+    // Meals by type
+    const mealsByType = await allQuery(`
+      SELECT 
+        m.meal_type,
+        COUNT(*) as count,
+        SUM(m.price) as revenue
+      FROM issued_meals im
+      JOIN menu m ON im.menu_id = m.id
+      WHERE im.status = 'выдан'
+      ${startDate ? 'AND DATE(im.created_at) >= ?' : ''}
+      ${endDate ? 'AND DATE(im.created_at) <= ?' : ''}
+      GROUP BY m.meal_type
+    `, [startDate, endDate].filter(Boolean))
+
+    // Top dishes
+    const topDishes = await allQuery(`
+      SELECT 
+        m.name,
+        m.meal_type,
+        COUNT(*) as orders_count,
+        SUM(m.price) as revenue
+      FROM orders o
+      JOIN menu m ON o.menu_id = m.id
+      WHERE o.status = 'оплачен'
+      ${startDate ? 'AND DATE(o.created_at) >= ?' : ''}
+      ${endDate ? 'AND DATE(o.created_at) <= ?' : ''}
+      GROUP BY m.name, m.meal_type
+      ORDER BY orders_count DESC
+      LIMIT 10
+    `, [startDate, endDate].filter(Boolean))
+
+    res.json({
+      revenue: {
+        totalOrders: revenue.total_orders || 0,
+        totalRevenue: parseFloat(revenue.total_revenue) || 0
+      },
+      mealsByType: mealsByType.map(m => ({
+        mealType: m.meal_type,
+        count: m.count || 0,
+        revenue: parseFloat(m.revenue) || 0
+      })),
+      topDishes: topDishes.map(d => ({
+        name: d.name,
+        mealType: d.meal_type,
+        ordersCount: d.orders_count || 0,
+        revenue: parseFloat(d.revenue) || 0
+      }))
+    })
+  } catch (error) {
+    console.error('Get reports error:', error)
+    res.status(500).json({ error: 'Ошибка получения отчетов' })
   }
 })
 

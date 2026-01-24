@@ -1,5 +1,5 @@
 import express from 'express'
-import { runQuery, allQuery } from '../database.js'
+import { runQuery, allQuery, getQuery } from '../database.js'
 import { v4 as uuidv4 } from 'uuid'
 
 const router = express.Router()
@@ -103,6 +103,78 @@ router.post('/issue-meal', async (req, res) => {
       return res.status(400).json({ error: 'Meal ID is required' })
     }
 
+    // Get meal info
+    const meal = await getQuery(`
+      SELECT menu_id FROM issued_meals WHERE id = ?
+    `, [mealId])
+
+    if (!meal) {
+      return res.status(404).json({ error: 'Блюдо не найдено' })
+    }
+
+    // Get ingredients for this menu item
+    const ingredients = await allQuery(`
+      SELECT ingredient_name, quantity, unit
+      FROM menu_ingredients
+      WHERE menu_id = ?
+    `, [meal.menu_id])
+
+    // Check if we have enough ingredients
+    const insufficientIngredients = []
+    for (const ingredient of ingredients) {
+      const inventoryItem = await getQuery(`
+        SELECT id, name, quantity, unit
+        FROM inventory
+        WHERE LOWER(name) = LOWER(?)
+      `, [ingredient.ingredient_name])
+
+      if (!inventoryItem) {
+        insufficientIngredients.push(`${ingredient.ingredient_name} (не найден на складе)`)
+      } else if (inventoryItem.quantity < ingredient.quantity) {
+        insufficientIngredients.push(`${ingredient.ingredient_name} (нужно ${ingredient.quantity} ${ingredient.unit}, есть ${inventoryItem.quantity} ${inventoryItem.unit})`)
+      }
+    }
+
+    if (insufficientIngredients.length > 0) {
+      return res.status(400).json({ 
+        error: 'Недостаточно ингредиентов на складе',
+        details: insufficientIngredients
+      })
+    }
+
+    // Deduct ingredients from inventory
+    for (const ingredient of ingredients) {
+      const inventoryItem = await getQuery(`
+        SELECT id, quantity
+        FROM inventory
+        WHERE LOWER(name) = LOWER(?)
+      `, [ingredient.ingredient_name])
+
+      const newQuantity = inventoryItem.quantity - ingredient.quantity
+
+      // Update inventory
+      await runQuery(`
+        UPDATE inventory 
+        SET quantity = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `, [newQuantity, inventoryItem.id])
+
+      // Log the change
+      await runQuery(`
+        INSERT INTO inventory_log (id, inventory_id, action, quantity_change, quantity_before, quantity_after, reason, created_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `, [
+        uuidv4(),
+        inventoryItem.id,
+        'списание',
+        -ingredient.quantity,
+        inventoryItem.quantity,
+        newQuantity,
+        `Выдача блюда (issued_meal: ${mealId})`,
+        req.session.user.id
+      ])
+    }
+
     // Update meal status
     await runQuery(`
       UPDATE issued_meals 
@@ -110,7 +182,7 @@ router.post('/issue-meal', async (req, res) => {
       WHERE id = ?
     `, [req.session.user.id, mealId])
 
-    res.json({ message: 'Блюдо выдано успешно' })
+    res.json({ message: 'Блюдо выдано успешно, ингредиенты списаны' })
   } catch (error) {
     console.error('Issue meal error:', error)
     res.status(500).json({ error: 'Ошибка выдачи блюда' })
@@ -143,7 +215,7 @@ router.post('/inventory', async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
-    const { name, quantity, unit } = req.body
+    const { name, quantity, unit, minQuantity } = req.body
 
     if (!name || !quantity || !unit) {
       return res.status(400).json({ error: 'Все поля обязательны' })
@@ -151,9 +223,24 @@ router.post('/inventory', async (req, res) => {
 
     const id = uuidv4()
     await runQuery(`
-      INSERT INTO inventory (id, name, quantity, unit)
-      VALUES (?, ?, ?, ?)
-    `, [id, name, parseFloat(quantity), unit])
+      INSERT INTO inventory (id, name, quantity, unit, min_quantity)
+      VALUES (?, ?, ?, ?, ?)
+    `, [id, name, parseFloat(quantity), unit, parseFloat(minQuantity || 10)])
+
+    // Log the addition
+    await runQuery(`
+      INSERT INTO inventory_log (id, inventory_id, action, quantity_change, quantity_before, quantity_after, reason, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      uuidv4(),
+      id,
+      'пополнение',
+      parseFloat(quantity),
+      0,
+      parseFloat(quantity),
+      'Добавление нового продукта',
+      req.session.user.id
+    ])
 
     res.json({ message: 'Продукт добавлен', id })
   } catch (error) {
@@ -176,11 +263,38 @@ router.put('/inventory/:id', async (req, res) => {
       return res.status(400).json({ error: 'Количество обязательно' })
     }
 
+    // Get current quantity
+    const current = await getQuery(`
+      SELECT quantity FROM inventory WHERE id = ?
+    `, [id])
+
+    if (!current) {
+      return res.status(404).json({ error: 'Продукт не найден' })
+    }
+
+    const newQuantity = parseFloat(quantity)
+    const change = newQuantity - current.quantity
+
     await runQuery(`
       UPDATE inventory 
       SET quantity = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-    `, [parseFloat(quantity), id])
+    `, [newQuantity, id])
+
+    // Log the change
+    await runQuery(`
+      INSERT INTO inventory_log (id, inventory_id, action, quantity_change, quantity_before, quantity_after, reason, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      uuidv4(),
+      id,
+      change > 0 ? 'пополнение' : 'списание',
+      change,
+      current.quantity,
+      newQuantity,
+      'Ручное изменение количества',
+      req.session.user.id
+    ])
 
     res.json({ message: 'Количество обновлено' })
   } catch (error) {
@@ -306,6 +420,162 @@ router.get('/students', async (req, res) => {
   } catch (error) {
     console.error('Get students error:', error)
     res.status(500).json({ error: 'Ошибка получения списка учеников' })
+  }
+})
+
+// Get menu ingredients
+router.get('/menu/:menuId/ingredients', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'chef') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { menuId } = req.params
+
+    const ingredients = await allQuery(`
+      SELECT * FROM menu_ingredients
+      WHERE menu_id = ?
+      ORDER BY ingredient_name
+    `, [menuId])
+
+    res.json(ingredients)
+  } catch (error) {
+    console.error('Get menu ingredients error:', error)
+    res.status(500).json({ error: 'Ошибка получения ингредиентов' })
+  }
+})
+
+// Get inventory log
+router.get('/inventory-log', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'chef') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { inventoryId, limit = 50 } = req.query
+
+    let sql = `
+      SELECT 
+        il.*,
+        i.name as inventory_name,
+        u.first_name || ' ' || u.last_name as created_by_name
+      FROM inventory_log il
+      JOIN inventory i ON il.inventory_id = i.id
+      LEFT JOIN users u ON il.created_by = u.id
+    `
+    const params = []
+
+    if (inventoryId) {
+      sql += ' WHERE il.inventory_id = ?'
+      params.push(inventoryId)
+    }
+
+    sql += ' ORDER BY il.created_at DESC LIMIT ?'
+    params.push(parseInt(limit))
+
+    const logs = await allQuery(sql, params)
+
+    const formattedLogs = logs.map(log => ({
+      id: log.id,
+      inventoryId: log.inventory_id,
+      inventoryName: log.inventory_name,
+      action: log.action,
+      quantityChange: parseFloat(log.quantity_change),
+      quantityBefore: parseFloat(log.quantity_before),
+      quantityAfter: parseFloat(log.quantity_after),
+      reason: log.reason,
+      createdBy: log.created_by_name,
+      createdAt: log.created_at
+    }))
+
+    res.json(formattedLogs)
+  } catch (error) {
+    console.error('Get inventory log error:', error)
+    res.status(500).json({ error: 'Ошибка получения истории склада' })
+  }
+})
+
+// Get low stock items
+router.get('/inventory/low-stock', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'chef') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const lowStock = await allQuery(`
+      SELECT * FROM inventory
+      WHERE quantity <= min_quantity
+      ORDER BY (quantity / min_quantity), name
+    `)
+
+    res.json(lowStock)
+  } catch (error) {
+    console.error('Get low stock error:', error)
+    res.status(500).json({ error: 'Ошибка получения списка' })
+  }
+})
+
+// Get menu requests
+router.get('/menu-requests', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'chef') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const requests = await allQuery(`
+      SELECT 
+        mr.*,
+        u.first_name || ' ' || u.last_name as created_by_name
+      FROM menu_requests mr
+      JOIN users u ON mr.created_by = u.id
+      WHERE mr.created_by = ?
+      ORDER BY mr.created_at DESC
+    `, [req.session.user.id])
+
+    const formattedRequests = requests.map(req => ({
+      id: req.id,
+      name: req.name,
+      description: req.description,
+      price: parseFloat(req.price),
+      mealType: req.meal_type,
+      ingredients: req.ingredients,
+      status: req.status,
+      adminComment: req.admin_comment,
+      createdByName: req.created_by_name,
+      createdAt: req.created_at,
+      reviewedAt: req.reviewed_at
+    }))
+
+    res.json(formattedRequests)
+  } catch (error) {
+    console.error('Get menu requests error:', error)
+    res.status(500).json({ error: 'Ошибка получения заявок' })
+  }
+})
+
+// Create menu request
+router.post('/menu-requests', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'chef') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { name, description, price, mealType, ingredients } = req.body
+
+    if (!name || !price || !mealType || !ingredients || ingredients.length === 0) {
+      return res.status(400).json({ error: 'Все поля обязательны' })
+    }
+
+    const id = uuidv4()
+    await runQuery(`
+      INSERT INTO menu_requests (id, name, description, price, meal_type, ingredients, created_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [id, name, description, parseFloat(price), mealType, JSON.stringify(ingredients), req.session.user.id])
+
+    res.json({ message: 'Заявка на добавление блюда создана', id })
+  } catch (error) {
+    console.error('Create menu request error:', error)
+    res.status(500).json({ error: 'Ошибка создания заявки' })
   }
 })
 

@@ -6,6 +6,7 @@
 1. **[START_HERE.md](START_HERE.md)** - Начните здесь! Быстрый старт за 3 минуты
 2. **[QUICKSTART.md](QUICKSTART.md)** - Подробная инструкция по запуску
 3. **[README.md](README.md)** - Полная документация проекта
+4. **[md/QUICK_TEST_GUIDE.md](md/QUICK_TEST_GUIDE.md)** - Быстрое тестирование новых функций (5 минут)
 
 ### Для Windows пользователей
 - **[WINDOWS_SETUP.md](WINDOWS_SETUP.md)** - Специальная инструкция для Windows
@@ -76,6 +77,9 @@
 - База данных → [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md#база-данных)
 - Абонементы → [SUBSCRIPTIONS_AND_BALANCE.md](SUBSCRIPTIONS_AND_BALANCE.md)
 - Пополнение баланса → [SUBSCRIPTIONS_AND_BALANCE.md](SUBSCRIPTIONS_AND_BALANCE.md#система-баланса)
+- Система склада → [md/INVENTORY_SYSTEM.md](md/INVENTORY_SYSTEM.md)
+- Заявки на новые блюда → [md/MENU_REQUESTS_FEATURE.md](md/MENU_REQUESTS_FEATURE.md)
+- Панель администратора → [md/IMPLEMENTATION_COMPLETE.md](md/IMPLEMENTATION_COMPLETE.md)
 
 ### Разработка
 - Стандарты кода → [CONTRIBUTING.md](CONTRIBUTING.md#стандарты-кода)
@@ -93,11 +97,12 @@
 
 | Категория | Файлов | Строк |
 |-----------|--------|-------|
-| Начало работы | 3 | ~1,500 |
+| Начало работы | 4 | ~2,000 |
 | Техническая | 3 | ~2,000 |
 | Проблемы и решения | 3 | ~1,000 |
 | Разработка | 2 | ~1,500 |
-| **Всего** | **11** | **~6,000** |
+| Новые функции | 3 | ~1,500 |
+| **Всего** | **15** | **~8,000** |
 
 ---
 

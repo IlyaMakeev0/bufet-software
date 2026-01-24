@@ -7,7 +7,7 @@ import { validatePhone, formatPhone, validateClassName, validatePosition } from 
 const router = express.Router()
 
 // Секретные коды для подтверждения
-const ADMIN_SECRET_CODE = 'ADMIN2024'
+const ADMIN_SECRET_CODE = '0000' // Заглушка для регистрации администратора
 const CHEF_SECRET_CODE = '2222' // Заглушка для регистрации повара
 const STUDENT_VERIFICATION_CODE = '1111' // Заглушка для подтверждения студентов
 
@@ -186,18 +186,19 @@ router.post('/topup', async (req, res) => {
     }
 
     const { amount } = req.body
+    const amountNum = parseFloat(amount)
 
-    if (!amount || amount <= 0) {
+    if (!amountNum || amountNum <= 0) {
       return res.status(400).json({ error: 'Сумма должна быть больше 0' })
     }
 
-    if (amount > 10000) {
+    if (amountNum > 10000) {
       return res.status(400).json({ error: 'Максимальная сумма пополнения: 10000 ₽' })
     }
 
     // Get current balance
     const user = await getQuery('SELECT balance FROM users WHERE id = ?', [req.session.user.id])
-    const newBalance = user.balance + amount
+    const newBalance = parseFloat(user.balance || 0) + amountNum
 
     // Update balance
     await runQuery('UPDATE users SET balance = ? WHERE id = ?', [newBalance, req.session.user.id])
