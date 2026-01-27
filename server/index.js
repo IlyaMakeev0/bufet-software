@@ -2,6 +2,8 @@ import express from 'express'
 import session from 'express-session'
 import cors from 'cors'
 import os from 'os'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { initDatabase, getDb } from './database.js'
 import waitForDatabase from './wait-for-db.js'
 import authRoutes from './routes/auth.js'
@@ -12,6 +14,9 @@ import chefRoutes from './routes/chef.js'
 import adminRoutes from './routes/admin.js'
 import profileRoutes from './routes/profile.js'
 import reviewRoutes from './routes/reviews.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app = express()
 const PORT = process.env.PORT || 5000
@@ -59,6 +64,17 @@ async function startServer() {
   app.use('/api/admin', adminRoutes)
   app.use('/api/profile', profileRoutes)
   app.use('/api/reviews', reviewRoutes)
+
+  // Serve static files in production
+  if (process.env.NODE_ENV === 'production') {
+    const distPath = path.join(__dirname, '..', 'dist')
+    app.use(express.static(distPath))
+    
+    // Handle client-side routing
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(distPath, 'index.html'))
+    })
+  }
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on:`)
