@@ -1,18 +1,14 @@
-services:
-  # PostgreSQL Database
-  - type: pserv
-    name: school-canteen-db
-    env: docker
+databases:
+  - name: school-canteen-db
+    databaseName: school_canteen
+    user: canteen_user
     plan: free
     region: frankfurt
-    databases:
-      - name: school_canteen
-        user: canteen_user
 
-  # Web Service (Backend + Frontend)
+services:
   - type: web
     name: school-canteen-app
-    env: node
+    runtime: node
     region: frankfurt
     plan: free
     buildCommand: npm install && npm run build
