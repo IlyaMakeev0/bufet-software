@@ -23,13 +23,13 @@ app.use(cors({
 }))
 app.use(express.json())
 app.use(session({
-  secret: 'школа-столовая-2024-секрет-ключ',
+  secret: process.env.SESSION_SECRET || 'школа-столовая-2024-секрет-ключ',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: false,
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }))

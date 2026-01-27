@@ -1,0 +1,76 @@
+═══════════════════════════════════════════════════════════════
+  🚀 ГОТОВО К ДЕПЛОЮ НА RENDER.COM
+═══════════════════════════════════════════════════════════════
+
+✅ ВСЕ ФАЙЛЫ СОЗДАНЫ:
+
+  📄 render.yaml - конфигурация для автоматического деплоя
+  📄 .env.example - пример переменных окружения
+  📄 check-env.js - проверка переменных
+  📄 create-test-accounts.sql - тестовые аккаунты
+
+═══════════════════════════════════════════════════════════════
+
+📚 ДОКУМЕНТАЦИЯ:
+
+  📖 БЫСТРЫЙ_ДЕПЛОЙ_RENDER.md - за 10 минут
+  📖 RENDER_DEPLOYMENT.md - подробная инструкция
+  📖 RENDER_CHECKLIST.md - чеклист проверки
+
+═══════════════════════════════════════════════════════════════
+
+⚡ БЫСТРЫЙ СТАРТ:
+
+1. Загрузите код на GitHub:
+   git add .
+   git commit -m "Prepare for Render"
+   git push origin main
+
+2. Откройте Render Dashboard:
+   https://dashboard.render.com
+
+3. Создайте PostgreSQL базу:
+   New + → PostgreSQL
+   Name: school-canteen-db
+   Plan: Free
+
+4. Создайте Web Service:
+   New + → Web Service
+   Name: school-canteen-app
+   Build: npm install && npm run build
+   Start: npm start
+
+5. Настройте переменные окружения:
+   - NODE_ENV=production
+   - PORT=10000
+   - DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+   - DATABASE_URL
+   - SESSION_SECRET
+
+6. Примените тестовые аккаунты:
+   Shell → cat create-test-accounts.sql | psql $DATABASE_URL
+
+7. Откройте ваш URL и войдите:
+   student@test.com / test123
+
+═══════════════════════════════════════════════════════════════
+
+🔑 ТЕСТОВЫЕ АККАУНТЫ:
+
+  Студент:         student@test.com  / test123
+  Повар:           chef@test.com     / test123
+  Администратор:   admin@test.com    / test123
+
+═══════════════════════════════════════════════════════════════
+
+📖 ЧИТАЙТЕ:
+
+  Быстрая инструкция:  БЫСТРЫЙ_ДЕПЛОЙ_RENDER.md
+  Полная инструкция:   RENDER_DEPLOYMENT.md
+  Чеклист:             RENDER_CHECKLIST.md
+
+═══════════════════════════════════════════════════════════════
+
+✨ ГОТОВО К ДЕПЛОЮ!
+
+═══════════════════════════════════════════════════════════════

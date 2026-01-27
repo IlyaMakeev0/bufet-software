@@ -13,7 +13,8 @@
     "server": "node server/index.js",
     "server:5001": "set PORT=5001 && node server/index.js",
     "server:8000": "set PORT=8000 && node server/index.js",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "check-env": "node check-env.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

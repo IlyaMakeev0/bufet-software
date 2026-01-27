@@ -1,0 +1,50 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: school-canteen-db
+    env: docker
+    plan: free
+    region: frankfurt
+    databases:
+      - name: school_canteen
+        user: canteen_user
+
+  # Web Service (Backend + Frontend)
+  - type: web
+    name: school-canteen-app
+    env: node
+    region: frankfurt
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DB_HOST
+        fromDatabase:
+          name: school-canteen-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: school-canteen-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: school-canteen-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: school-canteen-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: school-canteen-db
+          property: password
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: school-canteen-db
+          property: connectionString
