@@ -5,6 +5,7 @@ import StudentAuth from './pages/StudentAuth'
 import ChefAuth from './pages/ChefAuth'
 import AdminAuth from './pages/AdminAuth'
 import Dashboard from './pages/Dashboard'
+import ForgotPassword from './pages/ForgotPassword'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -48,6 +49,7 @@ function App() {
         <Route path="/student/*" element={<StudentAuth setUser={setUser} />} />
         <Route path="/chef/*" element={<ChefAuth setUser={setUser} />} />
         <Route path="/admin/*" element={<AdminAuth setUser={setUser} />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route 
           path="/dashboard" 
           element={user ? <Dashboard user={user} logout={logout} /> : <Navigate to="/" />} 

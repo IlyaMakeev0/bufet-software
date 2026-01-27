@@ -27,6 +27,17 @@ function AdminDashboard({ user }) {
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
   })
+  const [showEditUserModal, setShowEditUserModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [editUserData, setEditUserData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    className: '',
+    balance: '',
+    password: ''
+  })
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type })
@@ -136,6 +147,66 @@ function AdminDashboard({ user }) {
     }
   }
 
+  const openEditUserModal = (user) => {
+    setSelectedUser(user)
+    setEditUserData({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone || '',
+      className: user.className || '',
+      balance: user.balance || '',
+      password: ''
+    })
+    setShowEditUserModal(true)
+  }
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault()
+
+    try {
+      const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editUserData)
+      })
+
+      if (res.ok) {
+        showNotification('SUCCESS: Данные пользователя обновлены', 'success')
+        setShowEditUserModal(false)
+        setSelectedUser(null)
+        loadData()
+      } else {
+        const error = await res.json()
+        showNotification(`ERROR: ${error.error}`, 'error')
+      }
+    } catch (error) {
+      showNotification('ERROR: Ошибка подключения к серверу', 'error')
+    }
+  }
+
+  const handleDeleteUser = async (userId) => {
+    if (!confirm('Вы уверены, что хотите удалить этого пользователя?')) {
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE'
+      })
+
+      if (res.ok) {
+        showNotification('SUCCESS: Пользователь удален', 'success')
+        loadData()
+      } else {
+        const error = await res.json()
+        showNotification(`ERROR: ${error.error}`, 'error')
+      }
+    } catch (error) {
+      showNotification('ERROR: Ошибка подключения к серверу', 'error')
+    }
+  }
+
   const pendingMenuRequests = menuRequests.filter(r => r.status === 'ожидает')
   const pendingPurchaseRequests = purchaseRequests.filter(r => r.status === 'ожидает')
 
@@ -159,25 +230,25 @@ function AdminDashboard({ user }) {
       {/* Stats Grid */}
       <div className="admin-stats-grid">
         <div className="admin-stat-card">
-          <div className="admin-stat-icon">👥</div>
+          <div className="admin-stat-icon">USERS</div>
           <div className="admin-stat-value">{stats.totalUsers}</div>
           <div className="admin-stat-label">Всего пользователей</div>
         </div>
         
         <div className="admin-stat-card success">
-          <div className="admin-stat-icon">💰</div>
+          <div className="admin-stat-icon">REVENUE</div>
           <div className="admin-stat-value">{(stats.totalRevenue || 0).toFixed(0)} ₽</div>
           <div className="admin-stat-label">Общая выручка</div>
         </div>
         
         <div className="admin-stat-card warning">
-          <div className="admin-stat-icon">🛒</div>
+          <div className="admin-stat-icon">PURCHASE</div>
           <div className="admin-stat-value">{pendingPurchaseRequests.length}</div>
           <div className="admin-stat-label">Заявок на закупку</div>
         </div>
         
         <div className="admin-stat-card info">
-          <div className="admin-stat-icon">🍽️</div>
+          <div className="admin-stat-icon">MENU</div>
           <div className="admin-stat-value">{pendingMenuRequests.length}</div>
           <div className="admin-stat-label">Новых блюд</div>
         </div>
@@ -189,25 +260,25 @@ function AdminDashboard({ user }) {
           className={`tab ${activeTab === 'overview' ? 'active' : ''}`}
           onClick={() => setActiveTab('overview')}
         >
-          📊 Обзор
+          Обзор
         </button>
         <button 
           className={`tab ${activeTab === 'users' ? 'active' : ''}`}
           onClick={() => setActiveTab('users')}
         >
-          👥 Пользователи ({users.length})
+          Пользователи ({users.length})
         </button>
         <button 
           className={`tab ${activeTab === 'purchase' ? 'active' : ''}`}
           onClick={() => setActiveTab('purchase')}
         >
-          🛒 Заявки на закупку ({pendingPurchaseRequests.length})
+          Заявки на закупку ({pendingPurchaseRequests.length})
         </button>
         <button 
           className={`tab ${activeTab === 'menu-requests' ? 'active' : ''}`}
           onClick={() => setActiveTab('menu-requests')}
         >
-          🍽️ Новые блюда ({pendingMenuRequests.length})
+          Новые блюда ({pendingMenuRequests.length})
         </button>
         <button 
           className={`tab ${activeTab === 'reports' ? 'active' : ''}`}
@@ -216,14 +287,14 @@ function AdminDashboard({ user }) {
             loadReports()
           }}
         >
-          📈 Отчеты
+          Отчеты
         </button>
       </div>
 
       {/* Overview Tab */}
       {activeTab === 'overview' && (
         <div className="section">
-          <h2>📋 Последние заказы</h2>
+          <h2>Последние заказы</h2>
           {recentOrders.length === 0 ? (
             <p>Нет заказов</p>
           ) : (
@@ -262,7 +333,7 @@ function AdminDashboard({ user }) {
       {/* Users Tab */}
       {activeTab === 'users' && (
         <div className="section">
-          <h2>👥 Пользователи</h2>
+          <h2>Пользователи</h2>
           {users.length === 0 ? (
             <p>Нет зарегистрированных пользователей</p>
           ) : (
@@ -276,6 +347,7 @@ function AdminDashboard({ user }) {
                     <th>Класс/Должность</th>
                     <th>Баланс</th>
                     <th>Дата регистрации</th>
+                    <th>Действия</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -292,6 +364,24 @@ function AdminDashboard({ user }) {
                       <td>{u.className || u.position || '-'}</td>
                       <td>{u.role === 'student' ? `${u.balance} ₽` : '-'}</td>
                       <td>{new Date(u.createdAt).toLocaleDateString('ru-RU')}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            className="btn btn-sm btn-primary"
+                            onClick={() => openEditUserModal(u)}
+                          >
+                            Изменить
+                          </button>
+                          {u.id !== user.id && (
+                            <button
+                              className="btn btn-sm btn-danger"
+                              onClick={() => handleDeleteUser(u.id)}
+                            >
+                              Удалить
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -304,7 +394,7 @@ function AdminDashboard({ user }) {
       {/* Purchase Requests Tab */}
       {activeTab === 'purchase' && (
         <div className="section">
-          <h2>🛒 Заявки на закупку</h2>
+          <h2>Заявки на закупку</h2>
           {purchaseRequests.length === 0 ? (
             <p>Нет заявок на закупку</p>
           ) : (
@@ -328,8 +418,8 @@ function AdminDashboard({ user }) {
                       <td>{request.quantity} {request.unit}</td>
                       <td>
                         <span className={`urgency-badge ${request.urgency}`}>
-                          {request.urgency === 'срочная' ? '🔴 Срочная' : 
-                           request.urgency === 'высокая' ? '🟠 Высокая' : '🟢 Обычная'}
+                          {request.urgency === 'срочная' ? 'Срочная' : 
+                           request.urgency === 'высокая' ? 'Высокая' : 'Обычная'}
                         </span>
                       </td>
                       <td>{request.createdByName}</td>
@@ -369,7 +459,7 @@ function AdminDashboard({ user }) {
       {/* Menu Requests Tab */}
       {activeTab === 'menu-requests' && (
         <div className="section">
-          <h2>🍽️ Заявки на новые блюда</h2>
+          <h2>Заявки на новые блюда</h2>
           {menuRequests.length === 0 ? (
             <p>Нет заявок на добавление блюд</p>
           ) : (
@@ -453,7 +543,7 @@ function AdminDashboard({ user }) {
       {/* Reports Tab */}
       {activeTab === 'reports' && (
         <div className="section">
-          <h2>📈 Отчеты и аналитика</h2>
+          <h2>Отчеты и аналитика</h2>
           
           <div className="date-range-picker">
             <label>Период:</label>
@@ -476,7 +566,7 @@ function AdminDashboard({ user }) {
           {reports && (
             <div className="reports-grid">
               <div className="report-card">
-                <h3>💰 Выручка</h3>
+                <h3>Выручка</h3>
                 <div className="report-item">
                   <span className="report-item-label">Всего заказов:</span>
                   <span className="report-item-value">{reports.revenue.totalOrders}</span>
@@ -488,7 +578,7 @@ function AdminDashboard({ user }) {
               </div>
 
               <div className="report-card">
-                <h3>🍽️ По типам приема пищи</h3>
+                <h3>По типам приема пищи</h3>
                 {reports.mealsByType.map(meal => (
                   <div key={meal.mealType} className="report-item">
                     <span className="report-item-label">{meal.mealType}:</span>
@@ -588,6 +678,107 @@ function AdminDashboard({ user }) {
                 Отмена
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Edit User Modal */}
+      {showEditUserModal && selectedUser && (
+        <div className="modal-overlay" onClick={() => setShowEditUserModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Редактирование пользователя</h2>
+            
+            <form onSubmit={handleUpdateUser}>
+              <div className="form-group">
+                <label>Имя *</label>
+                <input
+                  type="text"
+                  value={editUserData.firstName}
+                  onChange={(e) => setEditUserData({...editUserData, firstName: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Фамилия *</label>
+                <input
+                  type="text"
+                  value={editUserData.lastName}
+                  onChange={(e) => setEditUserData({...editUserData, lastName: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  value={editUserData.email}
+                  onChange={(e) => setEditUserData({...editUserData, email: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Телефон</label>
+                <input
+                  type="tel"
+                  value={editUserData.phone}
+                  onChange={(e) => setEditUserData({...editUserData, phone: e.target.value})}
+                  placeholder="79991234567"
+                />
+              </div>
+
+              {selectedUser.role === 'student' && (
+                <>
+                  <div className="form-group">
+                    <label>Класс</label>
+                    <input
+                      type="text"
+                      value={editUserData.className}
+                      onChange={(e) => setEditUserData({...editUserData, className: e.target.value})}
+                      placeholder="10А"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Баланс (₽)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editUserData.balance}
+                      onChange={(e) => setEditUserData({...editUserData, balance: e.target.value})}
+                      placeholder="1000"
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="form-group">
+                <label>Новый пароль (оставьте пустым, если не хотите менять)</label>
+                <input
+                  type="password"
+                  value={editUserData.password}
+                  onChange={(e) => setEditUserData({...editUserData, password: e.target.value})}
+                  placeholder="Введите новый пароль"
+                  minLength="6"
+                />
+                <small>Минимум 6 символов</small>
+              </div>
+
+              <div className="modal-actions">
+                <button type="submit" className="btn btn-success">
+                  Сохранить изменения
+                </button>
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={() => setShowEditUserModal(false)}
+                >
+                  Отмена
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

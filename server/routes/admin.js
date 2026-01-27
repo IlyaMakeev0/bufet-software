@@ -387,3 +387,81 @@ router.get('/reports', async (req, res) => {
 })
 
 export default router
+
+
+// Update user data (admin only)
+router.put('/users/:id', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { id } = req.params
+    const { firstName, lastName, email, phone, className, balance, password } = req.body
+
+    // Validate required fields
+    if (!firstName || !lastName || !email) {
+      return res.status(400).json({ error: 'Имя, фамилия и email обязательны' })
+    }
+
+    // Check if email is already taken by another user
+    const existingUser = await getQuery('SELECT id FROM users WHERE email = ? AND id != ?', [email, id])
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email уже используется другим пользователем' })
+    }
+
+    // Build update query
+    let updateQuery = `
+      UPDATE users 
+      SET first_name = ?, last_name = ?, email = ?, phone = ?, class_name = ?
+    `
+    let params = [firstName, lastName, email, phone, className]
+
+    // Add balance if provided
+    if (balance !== undefined && balance !== null) {
+      updateQuery += ', balance = ?'
+      params.push(parseFloat(balance))
+    }
+
+    // Add password if provided
+    if (password && password.trim() !== '') {
+      const bcrypt = await import('bcryptjs')
+      const hashedPassword = await bcrypt.default.hash(password, 10)
+      updateQuery += ', password = ?'
+      params.push(hashedPassword)
+    }
+
+    updateQuery += ' WHERE id = ?'
+    params.push(id)
+
+    await runQuery(updateQuery, params)
+
+    res.json({ message: 'Данные пользователя обновлены' })
+  } catch (error) {
+    console.error('Update user error:', error)
+    res.status(500).json({ error: 'Ошибка обновления данных пользователя' })
+  }
+})
+
+// Delete user (admin only)
+router.delete('/users/:id', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'admin') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { id } = req.params
+
+    // Don't allow deleting yourself
+    if (id === req.session.user.id) {
+      return res.status(400).json({ error: 'Нельзя удалить свой собственный аккаунт' })
+    }
+
+    await runQuery('DELETE FROM users WHERE id = ?', [id])
+
+    res.json({ message: 'Пользователь удален' })
+  } catch (error) {
+    console.error('Delete user error:', error)
+    res.status(500).json({ error: 'Ошибка удаления пользователя' })
+  }
+})

@@ -16,7 +16,7 @@ function StudentChoice() {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>👨‍🎓 Вход для ученика</h1>
+        <h1>Вход для ученика</h1>
         <p className="auth-subtitle">Выберите действие:</p>
         
         <div className="btn-group">
@@ -62,7 +62,7 @@ function StudentLogin({ setUser }) {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>🔐 Вход для ученика</h1>
+        <h1>Вход для ученика</h1>
         
         {error && <div className="error">{error}</div>}
         
@@ -95,6 +95,7 @@ function StudentLogin({ setUser }) {
         
         <div className="auth-link">
           <p>Нет аккаунта? <Link to="/student/register">Зарегистрируйтесь</Link></p>
+          <p><Link to="/forgot-password">Забыли пароль?</Link></p>
         </div>
       </div>
     </div>
@@ -108,15 +109,54 @@ function StudentRegister({ setUser }) {
     confirmPassword: '',
     firstName: '',
     lastName: '',
-    phone: '',
     className: '',
     verificationCode: ''
   })
   const [error, setError] = useState('')
+  const [codeSent, setCodeSent] = useState(false)
+  const [sendingCode, setSendingCode] = useState(false)
+  const [codeVerified, setCodeVerified] = useState(false)
   const navigate = useNavigate()
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
+
+  const sendVerificationCode = async () => {
+    if (!formData.email) {
+      setError('Введите email для получения кода')
+      return
+    }
+
+    if (!formData.email.includes('@') || !formData.email.includes('.')) {
+      setError('Введите корректный email адрес')
+      return
+    }
+
+    setSendingCode(true)
+    setError('')
+
+    try {
+      const res = await fetch('/api/auth/send-verification-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email })
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        setCodeSent(true)
+        setError('')
+        alert(`✅ Код подтверждения отправлен на ${formData.email}\n\nПроверьте вашу почту (включая папку "Спам")`)
+      } else {
+        setError(data.error || 'Ошибка отправки кода')
+      }
+    } catch (err) {
+      setError('Ошибка подключения к серверу')
+    } finally {
+      setSendingCode(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -133,13 +173,10 @@ function StudentRegister({ setUser }) {
       return
     }
 
-    if (formData.phone.length < 10) {
-      setError('Номер телефона должен содержать минимум 10 цифр')
-      return
-    }
-
-    if (formData.className.length < 1 || formData.className.length > 5) {
-      setError('Класс должен содержать от 1 до 5 символов')
+    // Validate class format (e.g., 1А, 11Б, 9В)
+    const classRegex = /^([1-9]|1[0-1])[А-Яа-я]$/
+    if (!classRegex.test(formData.className)) {
+      setError('Класс должен быть в формате: 1А, 5Б, 11В (от 1 до 11 класса)')
       return
     }
 
@@ -169,7 +206,7 @@ function StudentRegister({ setUser }) {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>📝 Регистрация ученика</h1>
+        <h1>Регистрация ученика</h1>
         
         {error && <div className="error">{error}</div>}
         
@@ -236,21 +273,6 @@ function StudentRegister({ setUser }) {
           </div>
           
           <div className="form-group">
-            <label>Номер телефона:</label>
-            <input 
-              type="tel" 
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              required 
-              minLength="10"
-              maxLength="15"
-              placeholder="+7XXXXXXXXXX или 8XXXXXXXXXX"
-            />
-            <small style={{ color: '#7f8c8d' }}>От 10 до 15 цифр. Формат: +7XXX XXX XX XX</small>
-          </div>
-          
-          <div className="form-group">
             <label>Класс:</label>
             <input 
               type="text" 
@@ -258,24 +280,49 @@ function StudentRegister({ setUser }) {
               value={formData.className}
               onChange={handleChange}
               required 
-              minLength="1"
-              maxLength="5"
+              minLength="2"
+              maxLength="3"
               placeholder="10А"
             />
-            <small style={{ color: '#7f8c8d' }}>От 1 до 5 символов. Примеры: 10А, 11Б, 9</small>
+            <small style={{ color: '#7f8c8d' }}>Формат: 1А, 5Б, 11В (от 1 до 11 класса)</small>
           </div>
           
           <div className="form-group">
             <label>Код подтверждения:</label>
-            <input 
-              type="text" 
-              name="verificationCode"
-              value={formData.verificationCode}
-              onChange={handleChange}
-              required 
-              placeholder="Введите код подтверждения"
-            />
-            <small style={{ color: '#7f8c8d' }}>Получите код у администратора школы</small>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <input 
+                  type="text" 
+                  name="verificationCode"
+                  value={formData.verificationCode}
+                  onChange={handleChange}
+                  required 
+                  placeholder="Введите 6-значный код"
+                  maxLength="6"
+                  disabled={!codeSent}
+                  style={{ marginBottom: '8px' }}
+                />
+                {codeSent && (
+                  <small style={{ color: '#4caf50', display: 'block' }}>
+                    ✓ Код отправлен на {formData.email}
+                  </small>
+                )}
+                {!codeSent && (
+                  <small style={{ color: '#7f8c8d', display: 'block' }}>
+                    Сначала получите код на email
+                  </small>
+                )}
+              </div>
+              <button 
+                type="button"
+                className="btn btn-primary"
+                onClick={sendVerificationCode}
+                disabled={sendingCode || !formData.email}
+                style={{ minWidth: '180px', whiteSpace: 'nowrap' }}
+              >
+                {sendingCode ? 'Отправка...' : codeSent ? 'Отправить снова' : 'Получить код'}
+              </button>
+            </div>
           </div>
           
           <button type="submit" className="btn btn-success">Зарегистрироваться</button>

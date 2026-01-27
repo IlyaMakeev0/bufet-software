@@ -95,12 +95,12 @@ function ChefDashboard({ user }) {
       })
 
       if (res.ok) {
-        showNotification('✅ Блюдо выдано успешно! Ингредиенты списаны со склада', 'success')
+        showNotification('Блюдо выдано успешно! Ингредиенты списаны со склада', 'success')
         loadData()
       } else {
         const error = await res.json()
         if (error.details) {
-          showNotification(`❌ ${error.error}:\n${error.details.join('\n')}`, 'error')
+          showNotification(`${error.error}:\n${error.details.join('\n')}`, 'error')
         } else {
           showNotification(error.error || 'Ошибка выдачи блюда', 'error')
         }
@@ -126,7 +126,7 @@ function ChefDashboard({ user }) {
       })
 
       if (res.ok) {
-        showNotification('✅ Продукт добавлен на склад', 'success')
+        showNotification('Продукт добавлен на склад', 'success')
         setShowInventoryModal(false)
         setNewInventoryItem({ name: '', quantity: '', unit: 'кг', minQuantity: 10 })
         loadData()
@@ -148,7 +148,7 @@ function ChefDashboard({ user }) {
       })
 
       if (res.ok) {
-        showNotification('✅ Количество обновлено', 'success')
+        showNotification('Количество обновлено', 'success')
         loadData()
       } else {
         const error = await res.json()
@@ -166,7 +166,7 @@ function ChefDashboard({ user }) {
       })
 
       if (res.ok) {
-        showNotification('✅ Продукт удален', 'success')
+        showNotification('Продукт удален', 'success')
         loadData()
       } else {
         const error = await res.json()
@@ -188,7 +188,7 @@ function ChefDashboard({ user }) {
       })
 
       if (res.ok) {
-        showNotification('✅ Заявка на закупку создана', 'success')
+        showNotification('Заявка на закупку создана', 'success')
         setShowPurchaseModal(false)
         setNewPurchaseRequest({ item: '', quantity: '', unit: 'кг', urgency: 'обычная' })
         loadData()
@@ -203,8 +203,8 @@ function ChefDashboard({ user }) {
 
   const getSpecialRequirements = (meal) => {
     const requirements = []
-    if (meal.allergies) requirements.push(`⚠️ Аллергии: ${meal.allergies}`)
-    if (meal.foodPreferences) requirements.push(`❤️ Предпочтения: ${meal.foodPreferences}`)
+    if (meal.allergies) requirements.push(`! Аллергии: ${meal.allergies}`)
+    if (meal.foodPreferences) requirements.push(`♥ Предпочтения: ${meal.foodPreferences}`)
     return requirements
   }
 
@@ -277,7 +277,7 @@ function ChefDashboard({ user }) {
       })
 
       if (res.ok) {
-        showNotification('✅ Заявка на добавление блюда отправлена администратору', 'success')
+        showNotification('Заявка на добавление блюда отправлена администратору', 'success')
         setShowMenuRequestModal(false)
         setNewMenuRequest({
           name: '',
@@ -315,31 +315,31 @@ function ChefDashboard({ user }) {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon">⏳</div>
+          <div className="stat-icon">PENDING</div>
           <div className="stat-value">{pendingMeals.length}</div>
           <div className="stat-label">Ожидают выдачи</div>
         </div>
         
         <div className="stat-card">
-          <div className="stat-icon">🌅</div>
+          <div className="stat-icon">BREAKFAST</div>
           <div className="stat-value">{stats.breakfastIssued}</div>
           <div className="stat-label">Завтраков выдано</div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">🍽️</div>
+          <div className="stat-icon">LUNCH</div>
           <div className="stat-value">{stats.lunchIssued}</div>
           <div className="stat-label">Обедов выдано</div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">🍪</div>
+          <div className="stat-icon">SNACK</div>
           <div className="stat-value">{stats.snackIssued}</div>
           <div className="stat-label">Полдников выдано</div>
         </div>
 
         <div className={`stat-card ${lowStock.length > 0 ? 'warning' : ''}`}>
-          <div className="stat-icon">⚠️</div>
+          <div className="stat-icon">LOW STOCK</div>
           <div className="stat-value">{lowStock.length}</div>
           <div className="stat-label">Мало на складе</div>
         </div>
@@ -351,43 +351,43 @@ function ChefDashboard({ user }) {
           className={`tab ${activeTab === 'pending' ? 'active' : ''}`}
           onClick={() => setActiveTab('pending')}
         >
-          ⏳ Ожидают выдачи ({pendingMeals.length})
+          Ожидают выдачи ({pendingMeals.length})
         </button>
         <button 
           className={`tab ${activeTab === 'issued' ? 'active' : ''}`}
           onClick={() => setActiveTab('issued')}
         >
-          ✅ Выдано сегодня ({issuedToday.length})
+          Выдано сегодня ({issuedToday.length})
         </button>
         <button 
           className={`tab ${activeTab === 'students' ? 'active' : ''}`}
           onClick={() => setActiveTab('students')}
         >
-          👥 Ученики ({students.length})
+          Ученики ({students.length})
         </button>
         <button 
           className={`tab ${activeTab === 'inventory' ? 'active' : ''}`}
           onClick={() => setActiveTab('inventory')}
         >
-          📦 Склад ({inventory.length})
+          Склад ({inventory.length})
         </button>
         <button 
           className={`tab ${activeTab === 'purchase' ? 'active' : ''}`}
           onClick={() => setActiveTab('purchase')}
         >
-          🛒 Заявки на закупку ({purchaseRequests.length})
+          Заявки на закупку ({purchaseRequests.length})
         </button>
         <button 
           className={`tab ${activeTab === 'menu-requests' ? 'active' : ''}`}
           onClick={() => setActiveTab('menu-requests')}
         >
-          🍽️ Новые блюда ({menuRequests.length})
+          Новые блюда ({menuRequests.length})
         </button>
       </div>
 
       {activeTab === 'pending' && (
         <div className="section">
-          <h2>⏳ Ожидают выдачи</h2>
+          <h2>Ожидают выдачи</h2>
           {pendingMeals.length === 0 ? (
             <p>Нет блюд, ожидающих выдачи</p>
           ) : (
@@ -432,7 +432,7 @@ function ChefDashboard({ user }) {
                             className="btn btn-success"
                             onClick={() => issueMeal(meal.id)}
                           >
-                            ✓ Выдать
+                            Выдать
                           </button>
                         </td>
                       </tr>
@@ -447,7 +447,7 @@ function ChefDashboard({ user }) {
 
       {activeTab === 'issued' && (
         <div className="section">
-          <h2>✅ Выдано сегодня</h2>
+          <h2>Выдано сегодня</h2>
           {issuedToday.length === 0 ? (
             <p>Сегодня еще ничего не выдано</p>
           ) : (
@@ -486,10 +486,10 @@ function ChefDashboard({ user }) {
       {activeTab === 'students' && (
         <div className="section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2>👥 База учеников</h2>
+            <h2>База учеников</h2>
             <input
               type="text"
-              placeholder="🔍 Поиск по имени или классу..."
+              placeholder="Поиск по имени или классу..."
               value={searchStudent}
               onChange={(e) => setSearchStudent(e.target.value)}
               style={{
@@ -521,7 +521,7 @@ function ChefDashboard({ user }) {
                   <div className="student-details">
                     {student.allergies && (
                       <div className="student-detail allergies">
-                        <span className="detail-icon">⚠️</span>
+                        <span className="detail-icon">!</span>
                         <div>
                           <strong>Аллергии:</strong>
                           <p>{student.allergies}</p>
@@ -531,7 +531,7 @@ function ChefDashboard({ user }) {
                     
                     {student.foodPreferences && (
                       <div className="student-detail preferences">
-                        <span className="detail-icon">❤️</span>
+                        <span className="detail-icon">♥</span>
                         <div>
                           <strong>Предпочтения:</strong>
                           <p>{student.foodPreferences}</p>
@@ -541,7 +541,7 @@ function ChefDashboard({ user }) {
                     
                     {!student.allergies && !student.foodPreferences && (
                       <div className="student-detail no-restrictions">
-                        <span className="detail-icon">✅</span>
+                        <span className="detail-icon">✓</span>
                         <p>Нет ограничений</p>
                       </div>
                     )}
@@ -564,11 +564,11 @@ function ChefDashboard({ user }) {
       {activeTab === 'inventory' && (
         <div className="section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2>📦 Склад продуктов</h2>
+            <h2>Склад продуктов</h2>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
               <input
                 type="text"
-                placeholder="🔍 Поиск продукта..."
+                placeholder="Поиск продукта..."
                 value={searchInventory}
                 onChange={(e) => setSearchInventory(e.target.value)}
                 style={{
@@ -596,7 +596,7 @@ function ChefDashboard({ user }) {
               padding: '15px', 
               marginBottom: '20px' 
             }}>
-              <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>⚠️ Требуют пополнения ({lowStock.length})</h3>
+              <h3 style={{ margin: '0 0 10px 0', color: '#856404' }}>Требуют пополнения ({lowStock.length})</h3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                 {lowStock.map(item => (
                   <span 
@@ -634,14 +634,14 @@ function ChefDashboard({ user }) {
                           onClick={() => viewInventoryLog(item)}
                           title="История"
                         >
-                          📊
+                          LOG
                         </button>
                         <button 
                           className="btn-icon btn-danger"
                           onClick={() => deleteInventoryItem(item.id)}
                           title="Удалить"
                         >
-                          🗑️
+                          DEL
                         </button>
                       </div>
                     </div>
@@ -685,7 +685,7 @@ function ChefDashboard({ user }) {
                     
                     {isLow && (
                       <div className="low-stock-badge">
-                        ⚠️ Мало на складе
+                        Мало на складе
                       </div>
                     )}
                     
@@ -703,7 +703,7 @@ function ChefDashboard({ user }) {
       {activeTab === 'purchase' && (
         <div className="section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2>🛒 Заявки на закупку</h2>
+            <h2>Заявки на закупку</h2>
             <button 
               className="btn btn-primary"
               onClick={() => setShowPurchaseModal(true)}
@@ -720,7 +720,7 @@ function ChefDashboard({ user }) {
               padding: '15px', 
               marginBottom: '20px' 
             }}>
-              <h3 style={{ margin: '0 0 10px 0', color: '#2e7d32' }}>💡 Рекомендуем заказать</h3>
+              <h3 style={{ margin: '0 0 10px 0', color: '#2e7d32' }}>Рекомендуем заказать</h3>
               <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#558b2f' }}>
                 Следующие продукты заканчиваются на складе:
               </p>
@@ -768,8 +768,8 @@ function ChefDashboard({ user }) {
                       <td>{request.quantity} {request.unit}</td>
                       <td>
                         <span className={`urgency-badge ${request.urgency}`}>
-                          {request.urgency === 'срочная' ? '🔴 Срочная' : 
-                           request.urgency === 'высокая' ? '🟠 Высокая' : '🟢 Обычная'}
+                          {request.urgency === 'срочная' ? 'Срочная' : 
+                           request.urgency === 'высокая' ? 'Высокая' : 'Обычная'}
                         </span>
                       </td>
                       <td>
@@ -796,7 +796,7 @@ function ChefDashboard({ user }) {
       {activeTab === 'menu-requests' && (
         <div className="section">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2>🍽️ Заявки на новые блюда</h2>
+            <h2>Заявки на новые блюда</h2>
             <button 
               className="btn btn-primary"
               onClick={() => setShowMenuRequestModal(true)}
@@ -812,7 +812,7 @@ function ChefDashboard({ user }) {
             padding: '15px', 
             marginBottom: '20px' 
           }}>
-            <h3 style={{ margin: '0 0 10px 0', color: '#1565c0' }}>💡 Как это работает</h3>
+            <h3 style={{ margin: '0 0 10px 0', color: '#1565c0' }}>Как это работает</h3>
             <p style={{ margin: '0', fontSize: '14px', color: '#1976d2' }}>
               Вы можете предложить новое блюдо для меню. Укажите название, описание, цену и подробный состав с количеством ингредиентов. 
               Администратор рассмотрит вашу заявку и при одобрении добавит блюдо в меню.
@@ -877,7 +877,7 @@ function ChefDashboard({ user }) {
       {showInventoryModal && (
         <div className="modal-overlay" onClick={() => setShowInventoryModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>📦 Добавить продукт на склад</h2>
+            <h2>Добавить продукт на склад</h2>
             <form onSubmit={addInventoryItem}>
               <div className="form-group">
                 <label>Название продукта</label>
@@ -948,7 +948,7 @@ function ChefDashboard({ user }) {
       {showPurchaseModal && (
         <div className="modal-overlay" onClick={() => setShowPurchaseModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>🛒 Создать заявку на закупку</h2>
+            <h2>Создать заявку на закупку</h2>
             <form onSubmit={createPurchaseRequest}>
               <div className="form-group">
                 <label>Название продукта</label>
@@ -990,9 +990,9 @@ function ChefDashboard({ user }) {
                   value={newPurchaseRequest.urgency}
                   onChange={(e) => setNewPurchaseRequest({...newPurchaseRequest, urgency: e.target.value})}
                 >
-                  <option value="обычная">🟢 Обычная</option>
-                  <option value="высокая">🟠 Высокая</option>
-                  <option value="срочная">🔴 Срочная</option>
+                  <option value="обычная">Обычная</option>
+                  <option value="высокая">Высокая</option>
+                  <option value="срочная">Срочная</option>
                 </select>
               </div>
               <div className="modal-actions">
@@ -1016,7 +1016,7 @@ function ChefDashboard({ user }) {
       {showStudentModal && selectedStudent && (
         <div className="modal-overlay" onClick={() => setShowStudentModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>👤 Информация об ученике</h2>
+            <h2>Информация об ученике</h2>
             
             <div className="student-modal-content">
               <div className="student-modal-header">
@@ -1031,13 +1031,13 @@ function ChefDashboard({ user }) {
 
               <div className="student-modal-details">
                 <div className="detail-section">
-                  <h4>📧 Контактная информация</h4>
+                  <h4>Контактная информация</h4>
                   <p><strong>Email:</strong> {selectedStudent.email}</p>
                   <p><strong>Телефон:</strong> {selectedStudent.phone}</p>
                 </div>
 
                 <div className="detail-section">
-                  <h4>⚠️ Пищевые аллергии</h4>
+                  <h4>Пищевые аллергии</h4>
                   {selectedStudent.allergies ? (
                     <div className="allergies-list">
                       {selectedStudent.allergies.split(', ').map((allergy, idx) => (
@@ -1045,12 +1045,12 @@ function ChefDashboard({ user }) {
                       ))}
                     </div>
                   ) : (
-                    <p style={{ color: '#27ae60' }}>✅ Нет аллергий</p>
+                    <p style={{ color: '#27ae60' }}>Нет аллергий</p>
                   )}
                 </div>
 
                 <div className="detail-section">
-                  <h4>❤️ Пищевые предпочтения</h4>
+                  <h4>Пищевые предпочтения</h4>
                   {selectedStudent.foodPreferences ? (
                     <div className="preferences-list">
                       {selectedStudent.foodPreferences.split(', ').map((pref, idx) => (
@@ -1081,7 +1081,7 @@ function ChefDashboard({ user }) {
       {showLogModal && selectedInventoryItem && (
         <div className="modal-overlay" onClick={() => setShowLogModal(false)}>
           <div className="modal-content" style={{ maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
-            <h2>📊 История: {selectedInventoryItem.name}</h2>
+            <h2>История: {selectedInventoryItem.name}</h2>
             
             <div style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1116,7 +1116,7 @@ function ChefDashboard({ user }) {
                         <td>{new Date(log.createdAt).toLocaleString('ru-RU')}</td>
                         <td>
                           <span className={`action-badge ${log.action}`}>
-                            {log.action === 'списание' ? '📉' : '📈'} {log.action}
+                            {log.action === 'списание' ? '↓' : '↑'} {log.action}
                           </span>
                         </td>
                         <td style={{ 
@@ -1153,7 +1153,7 @@ function ChefDashboard({ user }) {
       {showMenuRequestModal && (
         <div className="modal-overlay" onClick={() => setShowMenuRequestModal(false)}>
           <div className="modal-content" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
-            <h2>🍽️ Предложить новое блюдо</h2>
+            <h2>Предложить новое блюдо</h2>
             <form onSubmit={createMenuRequest}>
               <div className="form-group">
                 <label>Название блюда *</label>

@@ -10,7 +10,7 @@ function Dashboard({ user, logout }) {
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
-        <h1>🏫 Школьная столовая</h1>
+        <h1>Школьная столовая</h1>
         <div className="user-info">
           <span>{user.firstName} {user.lastName}</span>
           <button onClick={logout} className="btn btn-danger">Выйти</button>

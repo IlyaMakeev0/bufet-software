@@ -1,0 +1,167 @@
+/* ============================================
+   ИСПРАВЛЕНИЯ КОНТРАСТНОСТИ ТЕКСТА
+   Добавить в конец Dashboard.css
+   ============================================ */
+
+/* ТЕМНАЯ ТЕМА - БЕЛЫЙ ТЕКСТ */
+.dashboard-header h1 {
+  color: #ffffff !important;
+}
+
+.user-info span {
+  color: #ffffff !important;
+}
+
+.stat-value {
+  color: #ffffff !important;
+}
+
+.stat-label {
+  color: #90caf9 !important;
+}
+
+.stat-icon {
+  color: #90caf9 !important;
+}
+
+.section h2 {
+  color: #ffffff !important;
+}
+
+.section h3 {
+  color: #ffffff !important;
+}
+
+.menu-card h3 {
+  color: #ffffff !important;
+}
+
+.menu-card p {
+  color: #b0bec5 !important;
+}
+
+.menu-card .price {
+  color: #90caf9 !important;
+}
+
+th {
+  color: #ffffff !important;
+}
+
+td {
+  color: #e4e4e4 !important;
+}
+
+.tab {
+  color: #ffffff !important;
+}
+
+.tab.active {
+  color: #ffffff !important;
+}
+
+/* СВЕТЛАЯ ТЕМА - ТЕМНЫЙ ТЕКСТ */
+body.light-theme .dashboard-header h1 {
+  color: #2c3e50 !important;
+}
+
+body.light-theme .user-info span {
+  color: #2c3e50 !important;
+}
+
+body.light-theme .stat-value {
+  color: #2c3e50 !important;
+}
+
+body.light-theme .stat-label {
+  color: #546e7a !important;
+}
+
+body.light-theme .stat-icon {
+  color: #1565c0 !important;
+}
+
+body.light-theme .section h2 {
+  color: #2c3e50 !important;
+}
+
+body.light-theme .section h3 {
+  color: #2c3e50 !important;
+}
+
+body.light-theme .menu-card h3 {
+  color: #2c3e50 !important;
+}
+
+body.light-theme .menu-card p {
+  color: #546e7a !important;
+}
+
+body.light-theme .menu-card .price {
+  color: #1565c0 !important;
+}
+
+body.light-theme th {
+  color: #2c3e50 !important;
+}
+
+body.light-theme td {
+  color: #2c3e50 !important;
+}
+
+body.light-theme .tab {
+  color: #2c3e50 !important;
+}
+
+body.light-theme .tab.active {
+  color: #ffffff !important;
+}
+
+/* МОДАЛЬНЫЕ ОКНА - ВСЕГДА СВЕТЛЫЕ С ТЕМНЫМ ТЕКСТОМ */
+.modal-content {
+  background: #ffffff !important;
+}
+
+.modal-content h2,
+.modal-content h3,
+.modal-content label,
+.modal-content p,
+.modal-content div,
+.modal-content span,
+.modal-content small {
+  color: #2c3e50 !important;
+}
+
+.modal-content input,
+.modal-content select,
+.modal-content textarea {
+  color: #2c3e50 !important;
+  background: #ecf0f1 !important;
+}
+
+/* УВЕДОМЛЕНИЯ - БЕЛЫЙ ТЕКСТ */
+.notification-content {
+  color: #ffffff !important;
+}
+
+.notification-close {
+  color: #ffffff !important;
+}
+
+/* БЕЙДЖИ - БЕЛЫЙ ТЕКСТ */
+.status-badge {
+  color: #ffffff !important;
+}
+
+.meal-type {
+  color: #ffffff !important;
+}
+
+/* КНОПКИ - БЕЛЫЙ ТЕКСТ */
+.btn {
+  color: #ffffff !important;
+}
+
+body.light-theme .btn-secondary {
+  color: #ffffff !important;
+}

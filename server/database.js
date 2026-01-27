@@ -20,37 +20,29 @@ export function getDb() {
 }
 
 export async function initDatabase() {
-  console.log('🔄 Checking PostgreSQL database...')
+  console.log('Checking PostgreSQL database...')
 
-  const client = await pool.connect()
-  
+  let client;
   try {
-    // Проверяем, существует ли таблица inventory (ключевая для новой системы)
+    client = await pool.connect()
+    
+    // Проверяем, существуют ли основные таблицы
     const tableCheck = await client.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
         WHERE table_schema = 'public' 
-        AND table_name = 'inventory'
+        AND table_name = 'users'
       );
     `)
     
-    const inventoryExists = tableCheck.rows[0].exists
+    const tablesExist = tableCheck.rows[0].exists
     
-    if (inventoryExists === true) {
-      console.log('✅ Database already initialized, skipping...')
-      
-      // Проверим количество пользователей
-      const userCount = await client.query('SELECT COUNT(*) FROM users')
-      console.log(`📊 Current users count: ${userCount.rows[0].count}`)
-      
-      // Проверим количество продуктов на складе
-      const inventoryCount = await client.query('SELECT COUNT(*) FROM inventory')
-      console.log(`📦 Inventory items: ${inventoryCount.rows[0].count}`)
-      
+    if (tablesExist === true) {
+      console.log('Database already initialized')
       return
     }
     
-    console.log('📊 Initializing database for the first time...')
+    console.log('Initializing database for the first time...')
     
     await client.query('BEGIN')
 
@@ -428,13 +420,22 @@ export async function initDatabase() {
     }
 
     await client.query('COMMIT')
-    console.log('✅ PostgreSQL database initialized successfully!')
+    console.log('PostgreSQL database initialized successfully!')
   } catch (error) {
-    await client.query('ROLLBACK')
-    console.error('❌ Error initializing database:', error)
+    if (client) {
+      await client.query('ROLLBACK')
+    }
+    console.error('Error initializing database:', error)
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail
+    })
     throw error
   } finally {
-    client.release()
+    if (client) {
+      client.release()
+    }
   }
 }
 

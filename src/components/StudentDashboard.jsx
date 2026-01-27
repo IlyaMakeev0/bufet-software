@@ -177,11 +177,11 @@ function StudentDashboard({ user }) {
 
     // Симуляция обработки платежа
     if (paymentMethod === 'card') {
-      showNotification('💳 Обработка платежа по карте...', 'warning')
+      showNotification('PAYMENT: Обработка платежа по карте...', 'warning')
       await new Promise(resolve => setTimeout(resolve, 2000))
     } else if (paymentMethod === 'qr') {
       setShowQRCode(true)
-      showNotification('📱 Отсканируйте QR-код для оплаты', 'warning')
+      showNotification('QR: Отсканируйте QR-код для оплаты', 'warning')
       await new Promise(resolve => setTimeout(resolve, 3000))
       setShowQRCode(false)
     }
@@ -416,7 +416,7 @@ function StudentDashboard({ user }) {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon">💰</div>
+          <div className="stat-icon">BALANCE</div>
           <div className="stat-value">{balance.toFixed(2)} ₽</div>
           <div className="stat-label">Баланс</div>
           <button 
@@ -429,13 +429,13 @@ function StudentDashboard({ user }) {
         </div>
         
         <div className="stat-card">
-          <div className="stat-icon">📋</div>
+          <div className="stat-icon">ORDERS</div>
           <div className="stat-value">{orders.length}</div>
           <div className="stat-label">Заказов</div>
         </div>
         
         <div className="stat-card">
-          <div className="stat-icon">🎫</div>
+          <div className="stat-icon">TICKETS</div>
           <div className="stat-value">{subscriptions.length}</div>
           <div className="stat-label">Абонементов</div>
           <button 
@@ -448,7 +448,7 @@ function StudentDashboard({ user }) {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon">👤</div>
+          <div className="stat-icon">PROFILE</div>
           <div className="stat-label">Профиль</div>
           <button 
             className="btn btn-secondary"
@@ -466,31 +466,31 @@ function StudentDashboard({ user }) {
           className={`tab ${activeTab === 'menu' ? 'active' : ''}`}
           onClick={() => setActiveTab('menu')}
         >
-          🍽️ Меню
+          Меню
         </button>
         <button 
           className={`tab ${activeTab === 'orders' ? 'active' : ''}`}
           onClick={() => setActiveTab('orders')}
         >
-          📋 Заказы
+          Заказы
         </button>
         <button 
           className={`tab ${activeTab === 'pickup' ? 'active' : ''}`}
           onClick={() => setActiveTab('pickup')}
         >
-          📦 Получение
+          Получение
         </button>
         <button 
           className={`tab ${activeTab === 'subscriptions' ? 'active' : ''}`}
           onClick={() => setActiveTab('subscriptions')}
         >
-          🎫 Абонементы
+          Абонементы
         </button>
         <button 
           className={`tab ${activeTab === 'reviews' ? 'active' : ''}`}
           onClick={() => setActiveTab('reviews')}
         >
-          ⭐ Отзывы
+          Отзывы
         </button>
       </div>
 
@@ -498,7 +498,7 @@ function StudentDashboard({ user }) {
       {showTopUp && (
         <div className="modal-overlay" onClick={() => setShowTopUp(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>💰 Пополнение баланса</h2>
+            <h2>Пополнение баланса</h2>
             <form onSubmit={handleTopUp}>
               <div className="form-group">
                 <label>Сумма пополнения (₽)</label>
@@ -535,7 +535,7 @@ function StudentDashboard({ user }) {
       {showPaymentModal && (
         <div className="modal-overlay" onClick={() => !paymentProcessing && setShowPaymentModal(false)}>
           <div className="modal-content payment-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>💳 Выберите способ оплаты</h2>
+            <h2>Выберите способ оплаты</h2>
             
             <div className="payment-amount-display">
               <span>Сумма к оплате:</span>
@@ -553,7 +553,7 @@ function StudentDashboard({ user }) {
                   disabled={paymentProcessing}
                 />
                 <div className="payment-method-content">
-                  <div className="payment-icon">💳</div>
+                  <div className="payment-icon">CARD</div>
                   <div className="payment-info">
                     <div className="payment-name">Банковская карта</div>
                     <div className="payment-description">Visa, MasterCard, МИР</div>
@@ -571,7 +571,7 @@ function StudentDashboard({ user }) {
                   disabled={paymentProcessing}
                 />
                 <div className="payment-method-content">
-                  <div className="payment-icon">📱</div>
+                  <div className="payment-icon">QR</div>
                   <div className="payment-info">
                     <div className="payment-name">QR-код</div>
                     <div className="payment-description">СБП, Система Быстрых Платежей</div>
@@ -628,7 +628,7 @@ function StudentDashboard({ user }) {
       {showConfirmPayment && confirmPaymentData && (
         <div className="modal-overlay">
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>💳 Подтверждение оплаты</h2>
+            <h2>Подтверждение оплаты</h2>
             
             <div className="confirm-payment-info">
               <p>{confirmPaymentData.errorMessage}</p>
@@ -674,8 +674,8 @@ function StudentDashboard({ user }) {
       {/* Subscription Modal */}
       {showSubscription && (
         <div className="modal-overlay" onClick={() => setShowSubscription(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>🎫 Оформление абонемента</h2>
+          <div className="modal-content subscription-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Оформление абонемента</h2>
             
             <form onSubmit={createSubscription}>
               <div className="form-group">
@@ -690,7 +690,7 @@ function StudentDashboard({ user }) {
                       onChange={(e) => setSubscriptionType(e.target.value)}
                     />
                     <div className="type-content">
-                      <div className="type-icon">🌅</div>
+                      <div className="type-icon">BREAKFAST</div>
                       <div className="type-name">Только завтрак</div>
                       <div className="type-description">Завтрак каждый день</div>
                     </div>
@@ -705,7 +705,7 @@ function StudentDashboard({ user }) {
                       onChange={(e) => setSubscriptionType(e.target.value)}
                     />
                     <div className="type-content">
-                      <div className="type-icon">🍽️</div>
+                      <div className="type-icon">FULL DAY</div>
                       <div className="type-name">Полный день</div>
                       <div className="type-description">Завтрак + Обед + Полдник</div>
                     </div>
@@ -772,30 +772,31 @@ function StudentDashboard({ user }) {
               </div>
 
               <div className="subscription-summary">
-                <div className="summary-row">
-                  <span>Тип:</span>
-                  <strong>{getSubscriptionTypeName(subscriptionType)}</strong>
+                <h3>Итоговая информация</h3>
+                <div className="summary-item">
+                  <span className="summary-item-label">Тип:</span>
+                  <span className="summary-item-value">{getSubscriptionTypeName(subscriptionType)}</span>
                 </div>
-                <div className="summary-row">
-                  <span>Длительность:</span>
-                  <strong>{subscriptionDuration} дней</strong>
+                <div className="summary-item">
+                  <span className="summary-item-label">Длительность:</span>
+                  <span className="summary-item-value">{subscriptionDuration} дней</span>
                 </div>
-                <div className="summary-row">
-                  <span>Начало:</span>
-                  <strong>{new Date().toLocaleDateString('ru-RU')}</strong>
+                <div className="summary-item">
+                  <span className="summary-item-label">Начало:</span>
+                  <span className="summary-item-value">{new Date().toLocaleDateString('ru-RU')}</span>
                 </div>
-                <div className="summary-row">
-                  <span>Окончание:</span>
-                  <strong>
+                <div className="summary-item">
+                  <span className="summary-item-label">Окончание:</span>
+                  <span className="summary-item-value">
                     {new Date(Date.now() + subscriptionDuration * 24 * 60 * 60 * 1000).toLocaleDateString('ru-RU')}
-                  </strong>
+                  </span>
                 </div>
-                <div className="summary-row total">
-                  <span>Итого к оплате:</span>
-                  <strong className="total-price">{subscriptionPrices[subscriptionType][subscriptionDuration]} ₽</strong>
+                <div className="summary-item">
+                  <span className="summary-item-label">Итого к оплате:</span>
+                  <span className="summary-item-value">{subscriptionPrices[subscriptionType][subscriptionDuration]} ₽</span>
                 </div>
                 <div className="summary-note">
-                  💰 Деньги будут списаны с баланса сразу после оформления
+                  Деньги будут списаны с баланса сразу после оформления
                 </div>
               </div>
 
@@ -826,10 +827,10 @@ function StudentDashboard({ user }) {
       {showProfile && (
         <div className="modal-overlay" onClick={() => setShowProfile(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>👤 Настройки профиля</h2>
+            <h2>Настройки профиля</h2>
             <form onSubmit={handleUpdatePreferences}>
               <div className="form-group">
-                <label>🚫 Пищевые аллергии</label>
+                <label>Пищевые аллергии</label>
                 <div className="checkbox-group">
                   <label className="checkbox-label">
                     <input 
@@ -1133,10 +1134,10 @@ function StudentDashboard({ user }) {
       )}
 
       <div className="section">
-        <h2>🍽️ Меню на сегодня</h2>
+        <h2>Меню на сегодня</h2>
         {activeSubscription && (
           <div className="active-subscription-banner">
-            <div className="banner-icon">🎫</div>
+            <div className="banner-icon">SUBSCRIPTION</div>
             <div className="banner-content">
               <strong>У вас активен абонемент:</strong> {getSubscriptionTypeName(activeSubscription.subscriptionType)}
               <br />
@@ -1160,12 +1161,12 @@ function StudentDashboard({ user }) {
               return (
                 <div key={item.id} className={`menu-card ${hasAllergy ? 'has-allergy' : ''}`}>
                   <span className={`meal-type ${item.mealType}`}>
-                    {item.mealType === 'завтрак' ? '🌅 Завтрак' : 
-                     item.mealType === 'обед' ? '🍽️ Обед' : '🍪 Полдник'}
+                    {item.mealType === 'завтрак' ? 'Завтрак' : 
+                     item.mealType === 'обед' ? 'Обед' : 'Полдник'}
                   </span>
                   {coveredBySubscription && (
                     <div className="subscription-badge">
-                      🎫 По абонементу
+                      По абонементу
                     </div>
                   )}
                   {hasAllergy && (
@@ -1213,7 +1214,7 @@ function StudentDashboard({ user }) {
 
       {activeTab === 'orders' && (
         <div className="section">
-          <h2>📋 Мои заказы</h2>
+          <h2>Мои заказы</h2>
           {orders.length === 0 ? (
             <p>У вас пока нет заказов</p>
           ) : (
@@ -1249,7 +1250,7 @@ function StudentDashboard({ user }) {
 
       {activeTab === 'pickup' && (
         <div className="section">
-          <h2>📦 Получение заказов</h2>
+          <h2>Получение заказов</h2>
           {issuedMeals.length === 0 ? (
             <p>У вас нет заказов для получения</p>
           ) : (
@@ -1269,8 +1270,8 @@ function StudentDashboard({ user }) {
                     <tr key={meal.id}>
                       <td>{meal.menuName}</td>
                       <td>
-                        {meal.mealType === 'завтрак' ? '🌅 Завтрак' : 
-                         meal.mealType === 'обед' ? '🍽️ Обед' : '🍪 Полдник'}
+                        {meal.mealType === 'завтрак' ? 'Завтрак' : 
+                         meal.mealType === 'обед' ? 'Обед' : 'Полдник'}
                       </td>
                       <td>{new Date(meal.issueDate).toLocaleDateString('ru-RU')}</td>
                       <td>
@@ -1300,7 +1301,7 @@ function StudentDashboard({ user }) {
 
       {activeTab === 'subscriptions' && (
         <div className="section">
-          <h2>🎫 Мои абонементы</h2>
+          <h2>Мои абонементы</h2>
           {subscriptions.length === 0 ? (
             <p>У вас пока нет абонементов</p>
           ) : (

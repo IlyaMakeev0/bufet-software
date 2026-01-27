@@ -16,7 +16,7 @@ function ChefChoice() {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>👨‍🍳 Вход для повара</h1>
+        <h1>Вход для повара</h1>
         <p className="auth-subtitle">Выберите действие:</p>
         
         <div className="btn-group">
@@ -62,7 +62,7 @@ function ChefLogin({ setUser }) {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>🔐 Вход для повара</h1>
+        <h1>Вход для повара</h1>
         
         {error && <div className="error">{error}</div>}
         
@@ -95,6 +95,7 @@ function ChefLogin({ setUser }) {
         
         <div className="auth-link">
           <p>Нет аккаунта? <Link to="/chef/register">Зарегистрируйтесь</Link></p>
+          <p><Link to="/forgot-password">Забыли пароль?</Link></p>
         </div>
       </div>
     </div>
@@ -174,7 +175,7 @@ function ChefRegister({ setUser }) {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>📝 Регистрация повара</h1>
+        <h1>Регистрация повара</h1>
         
         {error && <div className="error">{error}</div>}
         

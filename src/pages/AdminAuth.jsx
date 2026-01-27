@@ -16,7 +16,7 @@ function AdminChoice() {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>👨‍💼 Вход для администратора</h1>
+        <h1>Вход для администратора</h1>
         <p className="auth-subtitle">Выберите действие:</p>
         
         <div className="btn-group">
@@ -62,7 +62,7 @@ function AdminLogin({ setUser }) {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>🔐 Вход для администратора</h1>
+        <h1>Вход для администратора</h1>
         
         {error && <div className="error">{error}</div>}
         
@@ -95,6 +95,7 @@ function AdminLogin({ setUser }) {
         
         <div className="auth-link">
           <p>Нет аккаунта? <Link to="/admin/register">Зарегистрируйтесь</Link></p>
+          <p><Link to="/forgot-password">Забыли пароль?</Link></p>
         </div>
       </div>
     </div>
@@ -174,7 +175,7 @@ function AdminRegister({ setUser }) {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h1>📝 Регистрация администратора</h1>
+        <h1>Регистрация администратора</h1>
         
         {error && <div className="error">{error}</div>}
         
@@ -281,7 +282,7 @@ function AdminRegister({ setUser }) {
               placeholder="Введите код подтверждения администратора"
             />
             <small style={{ color: '#e74c3c', fontWeight: 'bold' }}>
-              ⚠️ Код выдается вышестоящим руководством
+              Код выдается вышестоящим руководством
             </small>
           </div>
           
