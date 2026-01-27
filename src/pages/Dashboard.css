@@ -1865,3 +1865,141 @@ body.light-theme .inventory-card p {
   background: #1976d2 !important;
   color: #ffffff !important;
 }
+
+
+/* ============================================
+   КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Текст в чекбоксах
+   Дата: 27 января 2026, 13:05
+   ============================================ */
+
+/* Чекбоксы - текст должен быть темным */
+.checkbox-label {
+  background: #ecf0f1 !important;
+  border: 2px solid #bdc3c7 !important;
+  color: #2c3e50 !important;
+  padding: 10px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.checkbox-label span {
+  color: #2c3e50 !important;
+  font-weight: 600 !important;
+  font-size: 0.95em !important;
+}
+
+.checkbox-label:hover {
+  background: #ffffff !important;
+  border-color: #1565c0 !important;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px !important;
+  height: 18px !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+
+/* Checkbox group */
+.checkbox-group {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+  gap: 10px !important;
+  margin: 15px 0 !important;
+}
+
+/* Заголовки над чекбоксами */
+.modal-content .form-group label {
+  color: #2c3e50 !important;
+  font-weight: 700 !important;
+  font-size: 1.1em !important;
+  margin-bottom: 12px !important;
+  display: block !important;
+}
+
+/* Подсказки под чекбоксами */
+.modal-content .form-group small {
+  color: #546e7a !important;
+  font-size: 0.9em !important;
+  display: block !important;
+  margin-top: 8px !important;
+}
+
+/* Все текстовые элементы в модальных окнах */
+.modal-content * {
+  color: #2c3e50 !important;
+}
+
+/* Исключения - элементы с собственными цветами */
+.modal-content .btn {
+  color: #ffffff !important;
+}
+
+.modal-content .subscription-type-card.active *,
+.modal-content .duration-card.active *,
+.modal-content .payment-method-card.active * {
+  color: #ffffff !important;
+}
+
+.modal-content .subscription-summary {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%) !important;
+}
+
+.modal-content .subscription-summary * {
+  color: #1b5e20 !important;
+}
+
+.modal-content .subscription-summary h3 {
+  color: #1b5e20 !important;
+  border-bottom-color: #4caf50 !important;
+}
+
+.modal-content .summary-note {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffe082 100%) !important;
+  border-color: #ffc107 !important;
+}
+
+.modal-content .summary-note,
+.modal-content .summary-note * {
+  color: #5d4037 !important;
+}
+
+.modal-content .summary-note::before {
+  color: #f57c00 !important;
+}
+
+/* Allergy and preference tags */
+.modal-content .allergy-tag {
+  background: #d32f2f !important;
+  color: #ffffff !important;
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+  font-size: 0.9em !important;
+  font-weight: 600 !important;
+}
+
+.modal-content .preference-tag {
+  background: #1976d2 !important;
+  color: #ffffff !important;
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+  font-size: 0.9em !important;
+  font-weight: 600 !important;
+}
+
+/* Input placeholders */
+.modal-content input::placeholder,
+.modal-content textarea::placeholder {
+  color: #7f8c8d !important;
+  opacity: 1 !important;
+}
+
+/* Select options */
+.modal-content select option {
+  color: #2c3e50 !important;
+  background: #ffffff !important;
+}
