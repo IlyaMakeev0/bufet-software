@@ -1,18 +1,25 @@
 import nodemailer from 'nodemailer'
 
-// Настройки SMTP (из message.py)
+// Настройки SMTP из переменных окружения
 const SMTP_CONFIG = {
-  host: 'smtp.gmail.com',
-  port: 587,
+  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.EMAIL_PORT) || 587,
   secure: false, // true для 465, false для других портов
   auth: {
-    user: 'ppredprof@gmail.com',
-    pass: 'xvzr khqt hckc wabb' // Пароль приложения Gmail
+    user: process.env.EMAIL_USER || 'ppredprof@gmail.com',
+    pass: process.env.EMAIL_PASSWORD || 'xvzr khqt hckc wabb' // Пароль приложения Gmail
   }
 }
 
 // Создание транспорта
 const transporter = nodemailer.createTransport(SMTP_CONFIG)
+
+// Логирование конфигурации (без пароля)
+console.log('📧 Email сервис настроен:')
+console.log(`   Host: ${SMTP_CONFIG.host}`)
+console.log(`   Port: ${SMTP_CONFIG.port}`)
+console.log(`   User: ${SMTP_CONFIG.auth.user}`)
+console.log(`   Password: ${SMTP_CONFIG.auth.pass ? '***' : 'НЕ УСТАНОВЛЕН'}`)
 
 // Функция отправки кода верификации
 export async function sendVerificationCode(email, code) {
