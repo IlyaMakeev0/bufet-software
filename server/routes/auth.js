@@ -250,8 +250,8 @@ router.post('/send-verification-code', async (req, res) => {
       return res.status(400).json({ error: 'Этот email уже зарегистрирован' })
     }
 
-    // Генерируем 6-значный код
-    const code = Math.floor(100000 + Math.random() * 900000).toString()
+    // Используем фиксированный код-заглушку
+    const code = '1111'
     
     // Сохраняем код с временем истечения (10 минут)
     verificationCodes.set(email, {
@@ -259,33 +259,15 @@ router.post('/send-verification-code', async (req, res) => {
       expiresAt: Date.now() + 10 * 60 * 1000 // 10 минут
     })
 
-    console.log(`📧 Попытка отправки кода на ${email}`)
-    console.log(`🔑 Код: ${code}`)
-
-    // Отправляем код на email
-    try {
-      await sendVerificationCode(email, code)
-      console.log(`✅ Verification code sent to ${email}`)
-      
-      res.json({ 
-        success: true, 
-        message: 'Код подтверждения отправлен на ваш email'
-      })
-    } catch (emailError) {
-      console.error('❌ Email sending failed:', emailError.message)
-      console.error('Полная ошибка:', emailError)
-      
-      // Удаляем код если не удалось отправить
-      verificationCodes.delete(email)
-      
-      res.status(500).json({ 
-        error: 'Не удалось отправить код на email. Попробуйте позже или используйте тестовый аккаунт (student@test.com / test123).',
-        details: emailError.message
-      })
-    }
+    console.log(`✅ Код подтверждения сохранен для ${email}`)
+    
+    res.json({ 
+      success: true, 
+      message: 'Код подтверждения готов'
+    })
 
   } catch (error) {
-    console.error('❌ Error sending verification code:', error)
+    console.error('Error sending verification code:', error)
     res.status(500).json({ error: 'Ошибка отправки кода подтверждения' })
   }
 })

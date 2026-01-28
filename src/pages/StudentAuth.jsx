@@ -148,12 +148,13 @@ function StudentRegister({ setUser }) {
       if (res.ok) {
         setCodeSent(true)
         setError('')
-        alert(`✅ Код подтверждения отправлен на ${formData.email}\n\nПроверьте вашу почту (включая папку "Спам")`)
+        alert(`✅ Код подтверждения готов. Введите код в поле ниже.`)
       } else {
         setError(data.error || 'Ошибка отправки кода')
       }
     } catch (err) {
       setError('Ошибка подключения к серверу')
+      console.error('Ошибка отправки кода:', err)
     } finally {
       setSendingCode(false)
     }
