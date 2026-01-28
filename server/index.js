@@ -14,6 +14,7 @@ import chefRoutes from './routes/chef.js'
 import adminRoutes from './routes/admin.js'
 import profileRoutes from './routes/profile.js'
 import reviewRoutes from './routes/reviews.js'
+import qrcodeRoutes from './routes/qrcode.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -64,6 +65,7 @@ async function startServer() {
   app.use('/api/admin', adminRoutes)
   app.use('/api/profile', profileRoutes)
   app.use('/api/reviews', reviewRoutes)
+  app.use('/api/qrcode', qrcodeRoutes)
 
   // Serve static files in production
   if (process.env.NODE_ENV === 'production') {

@@ -28,6 +28,9 @@ function StudentDashboard({ user }) {
   const [showQRCode, setShowQRCode] = useState(false)
   const [showConfirmPayment, setShowConfirmPayment] = useState(false)
   const [confirmPaymentData, setConfirmPaymentData] = useState(null)
+  const [showOrderQR, setShowOrderQR] = useState(false)
+  const [selectedOrderQR, setSelectedOrderQR] = useState(null)
+  const [qrCodeData, setQrCodeData] = useState(null)
 
   // Показать уведомление
   const showNotification = (message, type = 'success') => {
@@ -234,6 +237,27 @@ function StudentDashboard({ user }) {
       } else {
         const payError = await payRes.json()
         showNotification(payError.error || 'Ошибка создания заказа', 'error')
+      }
+    } catch (error) {
+      showNotification('Ошибка подключения к серверу', 'error')
+    }
+  }
+
+  const generateOrderQR = async (orderId) => {
+    try {
+      const res = await fetch(`/api/qrcode/generate/order/${orderId}`, {
+        method: 'POST'
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setQrCodeData(data)
+        setSelectedOrderQR(orderId)
+        setShowOrderQR(true)
+        showNotification('✅ QR-код сгенерирован!', 'success')
+      } else {
+        const error = await res.json()
+        showNotification(error.error || 'Ошибка генерации QR-кода', 'error')
       }
     } catch (error) {
       showNotification('Ошибка подключения к серверу', 'error')
@@ -1133,6 +1157,59 @@ function StudentDashboard({ user }) {
         </div>
       )}
 
+      {/* QR Code Modal */}
+      {showOrderQR && qrCodeData && (
+        <div className="modal-overlay" onClick={() => setShowOrderQR(false)}>
+          <div className="modal-content qr-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>📱 QR-код для получения заказа</h2>
+            
+            <div className="qr-code-display">
+              <div className="qr-code-container">
+                <img 
+                  src={qrCodeData.qrCode} 
+                  alt="QR код заказа" 
+                  style={{ 
+                    width: '300px', 
+                    height: '300px',
+                    border: '4px solid #2c3e50',
+                    borderRadius: '12px',
+                    padding: '10px',
+                    background: '#fff'
+                  }}
+                />
+              </div>
+              
+              <div className="qr-instructions">
+                <h3>Как получить заказ:</h3>
+                <ol style={{ textAlign: 'left', paddingLeft: '20px' }}>
+                  <li>Покажите этот QR-код повару</li>
+                  <li>Повар отсканирует код</li>
+                  <li>Получите свой заказ</li>
+                </ol>
+                
+                <div className="qr-info">
+                  <p><strong>⏰ Срок действия:</strong></p>
+                  <p>{new Date(qrCodeData.expiresAt).toLocaleString('ru-RU')}</p>
+                  <p style={{ fontSize: '12px', color: '#7f8c8d', marginTop: '10px' }}>
+                    QR-код действителен 24 часа
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                type="button" 
+                className="btn btn-primary"
+                onClick={() => setShowOrderQR(false)}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="section">
         <h2>Меню на сегодня</h2>
         {activeSubscription && (
@@ -1226,6 +1303,7 @@ function StudentDashboard({ user }) {
                     <th>Цена</th>
                     <th>Статус</th>
                     <th>Дата</th>
+                    <th>QR-код</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1239,6 +1317,17 @@ function StudentDashboard({ user }) {
                         </span>
                       </td>
                       <td>{new Date(order.createdAt).toLocaleString('ru-RU')}</td>
+                      <td>
+                        {order.status === 'оплачен' && (
+                          <button 
+                            className="btn btn-primary btn-sm"
+                            onClick={() => generateOrderQR(order.id)}
+                            style={{ fontSize: '12px', padding: '5px 10px' }}
+                          >
+                            📱 Показать QR
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

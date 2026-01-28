@@ -36,6 +36,9 @@ function ChefDashboard({ user }) {
     snackIssued: 0,
     totalToday: 0
   })
+  const [showQRScanner, setShowQRScanner] = useState(false)
+  const [qrScanResult, setQrScanResult] = useState(null)
+  const [isScanning, setIsScanning] = useState(false)
 
   // Показать уведомление
   const showNotification = (message, type = 'success') => {
@@ -296,6 +299,65 @@ function ChefDashboard({ user }) {
     }
   }
 
+  const handleQRScan = async (qrData) => {
+    if (isScanning) return
+    setIsScanning(true)
+
+    try {
+      // Валидация QR-кода
+      const validateRes = await fetch('/api/qrcode/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qrData })
+      })
+
+      if (validateRes.ok) {
+        const data = await validateRes.json()
+        setQrScanResult(data.order)
+        showNotification('✅ QR-код действителен!', 'success')
+      } else {
+        const error = await validateRes.json()
+        showNotification(error.error || 'Недействительный QR-код', 'error')
+        setQrScanResult(null)
+      }
+    } catch (error) {
+      showNotification('Ошибка проверки QR-кода', 'error')
+      setQrScanResult(null)
+    } finally {
+      setIsScanning(false)
+    }
+  }
+
+  const issueOrderByQR = async () => {
+    if (!qrScanResult) return
+
+    try {
+      const res = await fetch(`/api/qrcode/issue/${qrScanResult.id}`, {
+        method: 'POST'
+      })
+
+      if (res.ok) {
+        showNotification('✅ Заказ успешно выдан!', 'success')
+        setShowQRScanner(false)
+        setQrScanResult(null)
+        loadData()
+      } else {
+        const error = await res.json()
+        showNotification(error.error || 'Ошибка выдачи заказа', 'error')
+      }
+    } catch (error) {
+      showNotification('Ошибка подключения к серверу', 'error')
+    }
+  }
+
+  const handleManualQRInput = (e) => {
+    e.preventDefault()
+    const input = e.target.elements.qrInput.value
+    if (input) {
+      handleQRScan(input)
+    }
+  }
+
   return (
     <div className="dashboard-content">
       {/* Notification */}
@@ -342,6 +404,18 @@ function ChefDashboard({ user }) {
           <div className="stat-icon">LOW STOCK</div>
           <div className="stat-value">{lowStock.length}</div>
           <div className="stat-label">Мало на складе</div>
+        </div>
+
+        <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+          <div className="stat-icon">QR</div>
+          <div className="stat-label" style={{ color: '#fff', marginTop: '10px' }}>Сканер QR-кодов</div>
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowQRScanner(true)}
+            style={{ marginTop: '10px', fontSize: '14px', background: '#fff', color: '#667eea' }}
+          >
+            📱 Открыть сканер
+          </button>
         </div>
       </div>
 
@@ -1296,6 +1370,127 @@ function ChefDashboard({ user }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* QR Scanner Modal */}
+      {showQRScanner && (
+        <div className="modal-overlay" onClick={() => setShowQRScanner(false)}>
+          <div className="modal-content qr-scanner-modal" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+            <h2>📱 Сканер QR-кодов</h2>
+            
+            <div className="qr-scanner-content">
+              <div style={{ 
+                background: '#f8f9fa', 
+                padding: '20px', 
+                borderRadius: '12px',
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                <div style={{ 
+                  width: '300px', 
+                  height: '300px', 
+                  margin: '0 auto',
+                  background: '#fff',
+                  border: '4px dashed #3498db',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '48px'
+                }}>
+                  📷
+                </div>
+                <p style={{ marginTop: '15px', color: '#7f8c8d' }}>
+                  Наведите камеру на QR-код ученика
+                </p>
+              </div>
+
+              <div style={{ 
+                background: '#e3f2fd', 
+                padding: '15px', 
+                borderRadius: '8px',
+                marginBottom: '20px'
+              }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#1976d2' }}>Ручной ввод</h4>
+                <form onSubmit={handleManualQRInput}>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <input
+                      type="text"
+                      name="qrInput"
+                      placeholder="Вставьте данные QR-кода"
+                      style={{ flex: 1 }}
+                    />
+                    <button 
+                      type="submit" 
+                      className="btn btn-primary"
+                      disabled={isScanning}
+                    >
+                      {isScanning ? 'Проверка...' : 'Проверить'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {qrScanResult && (
+                <div style={{ 
+                  background: '#d4edda', 
+                  border: '2px solid #28a745',
+                  padding: '20px', 
+                  borderRadius: '12px',
+                  marginBottom: '20px'
+                }}>
+                  <h3 style={{ margin: '0 0 15px 0', color: '#155724' }}>✅ Заказ найден!</h3>
+                  
+                  <div className="order-details">
+                    <div className="detail-row">
+                      <span><strong>Ученик:</strong></span>
+                      <span>{qrScanResult.studentName}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span><strong>Класс:</strong></span>
+                      <span>{qrScanResult.className}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span><strong>Блюдо:</strong></span>
+                      <span>{qrScanResult.menuName}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span><strong>Тип:</strong></span>
+                      <span className={`meal-type ${qrScanResult.mealType}`}>
+                        {qrScanResult.mealType}
+                      </span>
+                    </div>
+                    <div className="detail-row">
+                      <span><strong>Статус:</strong></span>
+                      <span className="status-badge paid">{qrScanResult.status}</span>
+                    </div>
+                  </div>
+
+                  <button 
+                    className="btn btn-success"
+                    onClick={issueOrderByQR}
+                    style={{ width: '100%', marginTop: '15px', fontSize: '16px' }}
+                  >
+                    ✓ Выдать заказ
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                type="button" 
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowQRScanner(false)
+                  setQrScanResult(null)
+                }}
+              >
+                Закрыть
+              </button>
+            </div>
           </div>
         </div>
       )}
