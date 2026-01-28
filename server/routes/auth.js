@@ -259,6 +259,9 @@ router.post('/send-verification-code', async (req, res) => {
       expiresAt: Date.now() + 10 * 60 * 1000 // 10 минут
     })
 
+    console.log(`📧 Попытка отправки кода на ${email}`)
+    console.log(`🔑 Код: ${code}`)
+
     // Отправляем код на email
     try {
       await sendVerificationCode(email, code)
@@ -269,16 +272,20 @@ router.post('/send-verification-code', async (req, res) => {
         message: 'Код подтверждения отправлен на ваш email'
       })
     } catch (emailError) {
-      console.error('Email sending failed:', emailError)
+      console.error('❌ Email sending failed:', emailError.message)
+      console.error('Полная ошибка:', emailError)
+      
       // Удаляем код если не удалось отправить
       verificationCodes.delete(email)
+      
       res.status(500).json({ 
-        error: 'Не удалось отправить код на email. Проверьте адрес и попробуйте снова.' 
+        error: 'Не удалось отправить код на email. Попробуйте позже или используйте тестовый аккаунт (student@test.com / test123).',
+        details: emailError.message
       })
     }
 
   } catch (error) {
-    console.error('Error sending verification code:', error)
+    console.error('❌ Error sending verification code:', error)
     res.status(500).json({ error: 'Ошибка отправки кода подтверждения' })
   }
 })

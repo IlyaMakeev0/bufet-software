@@ -25,6 +25,8 @@ console.log(`   Secure: ${SMTP_CONFIG.secure} (используется STARTTLS
 // Функция отправки кода верификации
 export async function sendVerificationCode(email, code) {
   try {
+    console.log(`📧 Подготовка письма для ${email}`)
+    
     const mailOptions = {
       from: {
         name: 'Школьная столовая',
@@ -139,11 +141,19 @@ export async function sendVerificationCode(email, code) {
       `.trim()
     }
 
+    console.log(`📤 Отправка письма через ${SMTP_CONFIG.host}:${SMTP_CONFIG.port}`)
     const info = await transporter.sendMail(mailOptions)
-    console.log('Email sent successfully:', info.messageId)
+    console.log('✅ Email sent successfully:', info.messageId)
+    console.log('📬 Response:', info.response)
     return { success: true, messageId: info.messageId }
   } catch (error) {
-    console.error('Error sending email:', error)
+    console.error('❌ Error sending email:')
+    console.error('   Message:', error.message)
+    console.error('   Code:', error.code)
+    console.error('   Command:', error.command)
+    if (error.response) {
+      console.error('   Response:', error.response)
+    }
     throw error
   }
 }
