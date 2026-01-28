@@ -6,23 +6,35 @@ const SMTP_CONFIG = {
   port: parseInt(process.env.EMAIL_PORT) || 587,
   secure: false, // true для 465, false для других портов
   auth: {
-    user: process.env.EMAIL_USER || 'ppredprof@gmail.com',
-    pass: process.env.EMAIL_PASSWORD || 'xvzr khqt hckc wabb' // Пароль приложения Gmail
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD
   }
 }
 
-// Создание транспорта
-const transporter = nodemailer.createTransport(SMTP_CONFIG)
+// Создание транспорта (только если credentials заполнены)
+let transporter = null
 
-// Логирование конфигурации (без пароля)
-console.log('📧 Email сервис настроен:')
-console.log(`   Host: ${SMTP_CONFIG.host}`)
-console.log(`   Port: ${SMTP_CONFIG.port}`)
-console.log(`   User: ${SMTP_CONFIG.auth.user}`)
-console.log(`   Password: ${SMTP_CONFIG.auth.pass ? '***' : 'НЕ УСТАНОВЛЕН'}`)
+if (SMTP_CONFIG.auth.user && SMTP_CONFIG.auth.pass) {
+  transporter = nodemailer.createTransport(SMTP_CONFIG)
+  console.log('📧 Email сервис настроен:')
+  console.log(`   Host: ${SMTP_CONFIG.host}`)
+  console.log(`   Port: ${SMTP_CONFIG.port}`)
+  console.log(`   User: ${SMTP_CONFIG.auth.user}`)
+  console.log(`   Password: ***`)
+} else {
+  console.log('📧 Email сервис:')
+  console.log(`   ⚠️  Credentials не установлены`)
+  console.log(`   💡 Используйте SKIP_EMAIL=true для режима разработки`)
+  console.log(`   💡 Или заполните EMAIL_USER и EMAIL_PASSWORD в .env`)
+}
 
 // Функция отправки кода верификации
 export async function sendVerificationCode(email, code) {
+  // Проверка что transporter создан
+  if (!transporter) {
+    throw new Error('Email transporter not configured. Set EMAIL_USER and EMAIL_PASSWORD in .env')
+  }
+  
   try {
     const mailOptions = {
       from: {
@@ -149,6 +161,11 @@ export async function sendVerificationCode(email, code) {
 
 // Функция отправки кода сброса пароля
 export async function sendPasswordResetCode(email, code) {
+  // Проверка что transporter создан
+  if (!transporter) {
+    throw new Error('Email transporter not configured. Set EMAIL_USER and EMAIL_PASSWORD in .env')
+  }
+  
   try {
     const mailOptions = {
       from: {
@@ -278,6 +295,11 @@ export async function sendPasswordResetCode(email, code) {
 
 // Проверка подключения к SMTP серверу
 export async function verifyEmailConnection() {
+  if (!transporter) {
+    console.log('⚠️  Email transporter not configured')
+    return false
+  }
+  
   try {
     await transporter.verify()
     console.log('✅ SMTP server connection verified')
