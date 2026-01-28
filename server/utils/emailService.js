@@ -1,40 +1,29 @@
 import nodemailer from 'nodemailer'
 
-// Настройки SMTP из переменных окружения
+// Настройки SMTP - точно как в message.py
 const SMTP_CONFIG = {
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: false, // true для 465, false для других портов
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // false для порта 587 (используется STARTTLS)
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
+    user: 'ppredprof@gmail.com',
+    pass: 'xvzr khqt hckc wabb' // Пароль приложения Gmail
   }
 }
 
-// Создание транспорта (только если credentials заполнены)
-let transporter = null
+// Создание транспорта
+const transporter = nodemailer.createTransport(SMTP_CONFIG)
 
-if (SMTP_CONFIG.auth.user && SMTP_CONFIG.auth.pass) {
-  transporter = nodemailer.createTransport(SMTP_CONFIG)
-  console.log('📧 Email сервис настроен:')
-  console.log(`   Host: ${SMTP_CONFIG.host}`)
-  console.log(`   Port: ${SMTP_CONFIG.port}`)
-  console.log(`   User: ${SMTP_CONFIG.auth.user}`)
-  console.log(`   Password: ***`)
-} else {
-  console.log('📧 Email сервис:')
-  console.log(`   ⚠️  Credentials не установлены`)
-  console.log(`   💡 Используйте SKIP_EMAIL=true для режима разработки`)
-  console.log(`   💡 Или заполните EMAIL_USER и EMAIL_PASSWORD в .env`)
-}
+// Логирование конфигурации
+console.log('📧 Email сервис настроен:')
+console.log(`   Host: ${SMTP_CONFIG.host}`)
+console.log(`   Port: ${SMTP_CONFIG.port}`)
+console.log(`   User: ${SMTP_CONFIG.auth.user}`)
+console.log(`   Password: ***`)
+console.log(`   Secure: ${SMTP_CONFIG.secure} (используется STARTTLS)`)
 
 // Функция отправки кода верификации
 export async function sendVerificationCode(email, code) {
-  // Проверка что transporter создан
-  if (!transporter) {
-    throw new Error('Email transporter not configured. Set EMAIL_USER and EMAIL_PASSWORD in .env')
-  }
-  
   try {
     const mailOptions = {
       from: {
@@ -161,11 +150,6 @@ export async function sendVerificationCode(email, code) {
 
 // Функция отправки кода сброса пароля
 export async function sendPasswordResetCode(email, code) {
-  // Проверка что transporter создан
-  if (!transporter) {
-    throw new Error('Email transporter not configured. Set EMAIL_USER and EMAIL_PASSWORD in .env')
-  }
-  
   try {
     const mailOptions = {
       from: {
@@ -295,17 +279,12 @@ export async function sendPasswordResetCode(email, code) {
 
 // Проверка подключения к SMTP серверу
 export async function verifyEmailConnection() {
-  if (!transporter) {
-    console.log('⚠️  Email transporter not configured')
-    return false
-  }
-  
   try {
     await transporter.verify()
     console.log('✅ SMTP server connection verified')
     return true
   } catch (error) {
-    console.error('❌ SMTP server connection failed:', error)
+    console.error('❌ SMTP server connection failed:', error.message)
     return false
   }
 }

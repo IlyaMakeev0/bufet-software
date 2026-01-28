@@ -261,51 +261,20 @@ router.post('/send-verification-code', async (req, res) => {
 
     // Отправляем код на email
     try {
-      // В режиме разработки можно пропустить отправку email
-      if (process.env.NODE_ENV === 'development' && process.env.SKIP_EMAIL === 'true') {
-        console.log(`🔧 DEV MODE: Verification code for ${email}: ${code}`)
-        console.log(`⚠️  Email отправка пропущена (SKIP_EMAIL=true)`)
-        
-        res.json({ 
-          success: true, 
-          message: 'Код подтверждения отправлен на ваш email',
-          devCode: code // Только для разработки!
-        })
-      } else {
-        // Production режим - отправляем email с таймаутом
-        const emailPromise = sendVerificationCode(email, code)
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Email timeout')), 10000) // 10 секунд таймаут
-        )
-        
-        await Promise.race([emailPromise, timeoutPromise])
-        
-        console.log(`✅ Verification code sent to ${email}`)
-        
-        res.json({ 
-          success: true, 
-          message: 'Код подтверждения отправлен на ваш email'
-        })
-      }
+      await sendVerificationCode(email, code)
+      console.log(`✅ Verification code sent to ${email}`)
+      
+      res.json({ 
+        success: true, 
+        message: 'Код подтверждения отправлен на ваш email'
+      })
     } catch (emailError) {
       console.error('Email sending failed:', emailError)
-      
-      // В режиме разработки все равно разрешаем продолжить
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`🔧 DEV MODE: Email failed, but code saved: ${code}`)
-        res.json({ 
-          success: true, 
-          message: 'Код подтверждения сохранен (email не отправлен)',
-          devCode: code, // Только для разработки!
-          warning: 'Email сервис недоступен, используйте код выше'
-        })
-      } else {
-        // Production - удаляем код и возвращаем ошибку
-        verificationCodes.delete(email)
-        res.status(500).json({ 
-          error: 'Не удалось отправить код на email. Проверьте адрес и попробуйте снова.' 
-        })
-      }
+      // Удаляем код если не удалось отправить
+      verificationCodes.delete(email)
+      res.status(500).json({ 
+        error: 'Не удалось отправить код на email. Проверьте адрес и попробуйте снова.' 
+      })
     }
 
   } catch (error) {
