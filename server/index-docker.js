@@ -2,9 +2,6 @@ import express from 'express'
 import session from 'express-session'
 import cors from 'cors'
 import path from 'path'
-import https from 'https'
-import http from 'http'
-import fs from 'fs'
 import { fileURLToPath } from 'url'
 import os from 'os'
 
@@ -28,24 +25,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const app = express()
-const HTTP_PORT = process.env.HTTP_PORT || 8080
-const HTTPS_PORT = process.env.HTTPS_PORT || 8443
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://localhost:8443'
-
-// SSL сертификаты (если существуют)
-let sslOptions = null
-const keyPath = path.join(__dirname, '..', 'cert', 'key.txt')
-const certPath = path.join(__dirname, '..', 'cert', 'www_autogreatfood_ru_2026_08_30.crt')
-
-if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
-  sslOptions = {
-    key: fs.readFileSync(keyPath),
-    cert: fs.readFileSync(certPath)
-  }
-  console.log('✅ SSL certificates loaded')
-} else {
-  console.log('⚠️  SSL certificates not found, running HTTP only')
-}
+const PORT = process.env.PORT || 80
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:80'
 
 // Middleware
 app.use(cors({
@@ -58,9 +39,9 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: sslOptions !== null, // true если есть SSL
+    secure: false, // Для HTTP (в production с HTTPS поставить true)
     httpOnly: true,
-    sameSite: sslOptions !== null ? 'none' : 'lax',
+    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }))
@@ -103,54 +84,24 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'))
 })
 
-// Запуск серверов
-if (sslOptions) {
-  // HTTPS сервер
-  https.createServer(sslOptions, app).listen(HTTPS_PORT, '0.0.0.0', () => {
-    console.log(`🔒 HTTPS Server running on:`)
-    console.log(`   - https://localhost:${HTTPS_PORT}`)
-    console.log(`   - https://www.autogreatfood.ru:${HTTPS_PORT}`)
-    
-    const networkInterfaces = os.networkInterfaces()
-    Object.keys(networkInterfaces).forEach(interfaceName => {
-      networkInterfaces[interfaceName].forEach(iface => {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          console.log(`   - https://${iface.address}:${HTTPS_PORT}`)
-        }
-      })
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on:`)
+  console.log(`   - Local:   http://localhost:${PORT}`)
+  console.log(`   - Network: http://127.0.0.1:${PORT}`)
+  console.log(`   - Network: http://0.0.0.0:${PORT}`)
+  console.log(`\n📱 Alternative URLs:`)
+  console.log(`   - http://localhost:${PORT}`)
+  console.log(`   - http://127.0.0.1:${PORT}`)
+  
+  // Получить локальный IP
+  const networkInterfaces = os.networkInterfaces()
+  Object.keys(networkInterfaces).forEach(interfaceName => {
+    networkInterfaces[interfaceName].forEach(iface => {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        console.log(`   - http://${iface.address}:${PORT}`)
+      }
     })
-    
-    console.log(`\n🗄️  Database: ${process.env.DB_HOST ? 'PostgreSQL' : 'SQLite'}`)
-    console.log(`✅ SSL Certificate: www.autogreatfood.ru (valid until 2026-08-30)`)
   })
-
-  // HTTP редирект сервер (опционально)
-  if (process.env.ENABLE_HTTP_REDIRECT === 'true') {
-    const httpApp = express()
-    httpApp.use('*', (req, res) => {
-      res.redirect(301, `https://${req.headers.host.replace(HTTP_PORT, HTTPS_PORT)}${req.url}`)
-    })
-    httpApp.listen(HTTP_PORT, '0.0.0.0', () => {
-      console.log(`\n🔄 HTTP Redirect Server running on port ${HTTP_PORT}`)
-      console.log(`   Redirecting all traffic to HTTPS`)
-    })
-  }
-} else {
-  // Только HTTP (если нет сертификатов)
-  app.listen(HTTP_PORT, '0.0.0.0', () => {
-    console.log(`🚀 HTTP Server running on:`)
-    console.log(`   - http://localhost:${HTTP_PORT}`)
-    console.log(`   - http://127.0.0.1:${HTTP_PORT}`)
-    
-    const networkInterfaces = os.networkInterfaces()
-    Object.keys(networkInterfaces).forEach(interfaceName => {
-      networkInterfaces[interfaceName].forEach(iface => {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          console.log(`   - http://${iface.address}:${HTTP_PORT}`)
-        }
-      })
-    })
-    
-    console.log(`\n🗄️  Database: ${process.env.DB_HOST ? 'PostgreSQL' : 'SQLite'}`)
-  })
-}
+  
+  console.log(`\n🗄️  Database: ${process.env.DB_HOST ? 'PostgreSQL' : 'SQLite'}`)
+})
