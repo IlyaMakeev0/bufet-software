@@ -27,10 +27,11 @@ RUN mkdir -p /app/data
 
 # Переменные окружения
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV HTTP_PORT=8080
+ENV HTTPS_PORT=8443
 
-# Открытие порта
-EXPOSE 5000
+# Открытие портов
+EXPOSE 8080 8443
 
 # Запуск приложения
 CMD ["node", "server/index-docker.js"]
