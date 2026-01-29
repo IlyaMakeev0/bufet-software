@@ -2,7 +2,7 @@ services:
   # База данных PostgreSQL
   db:
     image: postgres:16
-    container_name: school-canteen-db
+    container_name: canteen-db
     restart: unless-stopped
     environment:
       POSTGRES_DB: school_canteen
@@ -20,7 +20,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: school-canteen-app
+    container_name: canteen-app
     restart: unless-stopped
     environment:
       NODE_ENV: production
