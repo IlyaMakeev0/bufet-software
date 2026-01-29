@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: school-canteen-db
+    environment:
+      POSTGRES_DB: school_canteen
+      POSTGRES_USER: canteen_user
+      POSTGRES_PASSWORD: canteen_secure_password_2024
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - ./add-missing-tables.sql:/docker-entrypoint-initdb.d/02-tables.sql
+      - ./add-password-reset-table.sql:/docker-entrypoint-initdb.d/03-password-reset.sql
+      - ./add-transaction-logs-table.sql:/docker-entrypoint-initdb.d/04-transaction-logs.sql
+      - ./add-security-tables.sql:/docker-entrypoint-initdb.d/05-security.sql
+      - ./add-qr-code-fields.sql:/docker-entrypoint-initdb.d/06-qr-codes.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U canteen_user -d school_canteen"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - canteen-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: school-canteen-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - HTTPS_PORT=443
+      - HTTP_PORT=80
+      - ENABLE_HTTP_REDIRECT=true
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=school_canteen
+      - DB_USER=canteen_user
+      - DB_PASSWORD=canteen_secure_password_2024
+      - SESSION_SECRET=production-secret-key-change-this-minimum-32-chars
+      - ACCESS_TOKEN_SECRET=production-access-token-secret-32-chars
+      - REFRESH_TOKEN_SECRET=production-refresh-token-secret-32-chars
+      - ENCRYPTION_KEY=production-encryption-key-32-chars
+      - FRONTEND_URL=https://www.autogreatfood.ru
+      - ADMIN_SECRET_CODE=0000
+      - CHEF_SECRET_CODE=2222
+      - STUDENT_VERIFICATION_CODE=1111
+      - EMAIL_HOST=smtp.gmail.com
+      - EMAIL_PORT=587
+      - EMAIL_USER=ppredprof@gmail.com
+      - EMAIL_PASSWORD=xvzr khqt hckc wabb
+      - EMAIL_FROM=School Canteen <noreply@school-canteen.com>
+    volumes:
+      - ./cert:/app/cert:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - canteen-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  canteen-network:
+    driver: bridge
