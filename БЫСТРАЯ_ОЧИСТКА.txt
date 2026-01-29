@@ -1,0 +1,133 @@
+═══════════════════════════════════════════════════════════
+  🧹 БЫСТРАЯ ОЧИСТКА DOCKER
+═══════════════════════════════════════════════════════════
+
+Проблема: Container name is already in use
+
+Решение: Удалить старые контейнеры
+
+═══════════════════════════════════════════════════════════
+  🚀 АВТОМАТИЧЕСКАЯ ОЧИСТКА (РЕКОМЕНДУЕТСЯ)
+═══════════════════════════════════════════════════════════
+
+Запустите скрипт:
+  ─────────────────────────────────────────────────────
+  chmod +x docker-clean-start.sh
+  ./docker-clean-start.sh
+  ─────────────────────────────────────────────────────
+
+Скрипт:
+  • Остановит все контейнеры
+  • Удалит старые контейнеры
+  • Спросит про volumes и образы
+  • Запустит новые контейнеры
+  • Проверит работу
+
+═══════════════════════════════════════════════════════════
+  🔧 РУЧНАЯ ОЧИСТКА
+═══════════════════════════════════════════════════════════
+
+Вариант 1: Быстрая очистка
+  ─────────────────────────────────────────────────────
+  docker stop school-canteen-app school-canteen-db
+  docker rm school-canteen-app school-canteen-db
+  docker-compose -f docker-compose.https-no-health.yml up -d --build
+  ─────────────────────────────────────────────────────
+
+Вариант 2: Полная очистка (с volumes)
+  ─────────────────────────────────────────────────────
+  docker-compose -f docker-compose.https.yml down -v
+  docker-compose -f docker-compose.https-no-health.yml down -v
+  docker-compose -f docker-compose.https-no-health.yml up -d --build
+  ─────────────────────────────────────────────────────
+
+Вариант 3: Очистка всего Docker
+  ─────────────────────────────────────────────────────
+  docker stop $(docker ps -aq)
+  docker rm $(docker ps -aq)
+  docker volume prune -f
+  docker-compose -f docker-compose.https-no-health.yml up -d --build
+  ─────────────────────────────────────────────────────
+
+═══════════════════════════════════════════════════════════
+  📋 ПОШАГОВАЯ ИНСТРУКЦИЯ
+═══════════════════════════════════════════════════════════
+
+Шаг 1: Остановить контейнеры
+  docker stop school-canteen-app school-canteen-db
+
+Шаг 2: Удалить контейнеры
+  docker rm school-canteen-app school-canteen-db
+
+Шаг 3: Остановить через docker-compose
+  docker-compose -f docker-compose.https.yml down
+  docker-compose -f docker-compose.https-no-health.yml down
+
+Шаг 4: Запустить заново
+  docker-compose -f docker-compose.https-no-health.yml up -d --build
+
+Шаг 5: Проверить
+  docker-compose -f docker-compose.https-no-health.yml ps
+  curl http://localhost:8080/health
+
+═══════════════════════════════════════════════════════════
+  🔍 ПРОВЕРКА КОНТЕЙНЕРОВ
+═══════════════════════════════════════════════════════════
+
+Посмотреть все контейнеры:
+  docker ps -a
+
+Найти конкретный контейнер:
+  docker ps -a | grep school-canteen
+
+Удалить конкретный контейнер по ID:
+  docker rm -f 7b19d3c0cdea
+
+Удалить все остановленные контейнеры:
+  docker container prune -f
+
+═══════════════════════════════════════════════════════════
+  💡 ЧАСТЫЕ ОШИБКИ
+═══════════════════════════════════════════════════════════
+
+1. "container name is already in use"
+   → Удалите старый контейнер:
+     docker rm -f school-canteen-app school-canteen-db
+
+2. "volume is in use"
+   → Остановите все контейнеры:
+     docker stop $(docker ps -aq)
+
+3. "network is in use"
+   → Удалите сеть:
+     docker network rm bufet-software_canteen-network
+
+4. "permission denied"
+   → Используйте sudo:
+     sudo docker rm -f school-canteen-app
+
+═══════════════════════════════════════════════════════════
+  🎯 РЕКОМЕНДУЕМАЯ КОМАНДА
+═══════════════════════════════════════════════════════════
+
+Одна команда для полной очистки и запуска:
+
+  docker stop school-canteen-app school-canteen-db 2>/dev/null; \
+  docker rm school-canteen-app school-canteen-db 2>/dev/null; \
+  docker-compose -f docker-compose.https.yml down 2>/dev/null; \
+  docker-compose -f docker-compose.https-no-health.yml down 2>/dev/null; \
+  docker-compose -f docker-compose.https-no-health.yml up -d --build
+
+═══════════════════════════════════════════════════════════
+  📖 ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ
+═══════════════════════════════════════════════════════════
+
+Скрипты:
+  📄 docker-clean-start.sh - автоматическая очистка
+  📄 diagnose-docker.sh - диагностика
+
+Документация:
+  📄 ✅_РЕШЕНИЕ_UNHEALTHY.txt - решение проблем
+  📄 ДИАГНОСТИКА_ПРОБЛЕМЫ.txt - диагностика
+
+═══════════════════════════════════════════════════════════
