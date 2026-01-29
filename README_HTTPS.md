@@ -44,9 +44,17 @@ docker-start-https.bat
 
 После запуска приложение доступно по адресам:
 
-- 🔒 **https://www.autogreatfood.ru**
-- 🔒 **https://autogreatfood.ru**
-- 🔒 **https://localhost**
+### Альтернативные порты (по умолчанию, НЕ требуют root):
+- 🔒 **https://localhost:8443**
+- 🔒 **https://www.autogreatfood.ru:8443**
+- 🔄 **http://localhost:8080** (редирект на HTTPS)
+
+### Стандартные порты (требуют права администратора/root):
+- 🔒 **https://www.autogreatfood.ru** (порт 443)
+- 🔒 **https://autogreatfood.ru** (порт 443)
+- 🔒 **https://localhost** (порт 443)
+
+**По умолчанию используются порты 8080 и 8443** для удобства запуска без прав администратора.
 
 HTTP запросы автоматически перенаправляются на HTTPS.
 
