@@ -1,29 +1,9 @@
 import { Link } from 'react-router-dom'
-import { useState, useEffect } from 'react'
 import './Home.css'
 
 function Home() {
-  const [theme, setTheme] = useState('light')
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'light'
-    setTheme(savedTheme)
-    document.body.className = savedTheme === 'dark' ? 'dark-theme' : ''
-  }, [])
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light'
-    setTheme(newTheme)
-    localStorage.setItem('theme', newTheme)
-    document.body.className = newTheme === 'dark' ? 'dark-theme' : ''
-  }
-
   return (
     <div className="home-container">
-      <div className="theme-switcher" onClick={toggleTheme}>
-        <span className="theme-switcher-text">{theme === 'light' ? 'Темная тема' : 'Светлая тема'}</span>
-      </div>
-
       <div className="home-content">
         <h1>Школьная столовая</h1>
         <p className="subtitle">Система управления питанием в учебном заведении</p>
