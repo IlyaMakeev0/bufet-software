@@ -12,6 +12,9 @@ RUN npm run build
 FROM node:18-alpine
 WORKDIR /app
 
+# Установка wget для healthcheck
+RUN apk add --no-cache wget
+
 # Установка зависимостей для production
 COPY package*.json ./
 RUN npm ci --only=production

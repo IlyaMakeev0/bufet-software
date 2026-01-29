@@ -62,12 +62,6 @@ services:
     ports:
       - "8080:8080"
       - "8443:8443"
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
     networks:
       - canteen-network
     restart: unless-stopped
