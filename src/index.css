@@ -276,7 +276,8 @@ body.dark-theme textarea {
 body.dark-theme input:focus,
 body.dark-theme select:focus,
 body.dark-theme textarea:focus {
-  background: #16213e;
+  background: #2c3e50;
+  border-color: #1565c0;
 }
 
 body.dark-theme label {
@@ -286,6 +287,7 @@ body.dark-theme label {
 body.dark-theme .card {
   background: #34495e;
   border-color: #546e7a;
+  color: #ecf0f1;
 }
 
 body.dark-theme .theme-switcher {
@@ -316,5 +318,15 @@ body.dark-theme td,
 body.dark-theme .tab,
 body.dark-theme .role-desc,
 body.dark-theme .subtitle {
+  color: #90caf9 !important;
+}
+
+body.dark-theme p,
+body.dark-theme span,
+body.dark-theme div {
+  color: #ecf0f1;
+}
+
+body.dark-theme small {
   color: #90caf9 !important;
 }
