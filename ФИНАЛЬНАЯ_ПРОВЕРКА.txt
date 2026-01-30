@@ -1,0 +1,121 @@
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   ✅ SSL СЕРТИФИКАТЫ ЗАГРУЖЕНЫ!                          ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────┐
+│  СТАТУС:                                                 │
+└───────────────────────────────────────────────────────────┘
+
+✅ SSL certificates loaded successfully
+🔒 SSL: Enabled
+
+Сертификаты загружены, но нужно проверить, запустился ли сервер.
+
+┌───────────────────────────────────────────────────────────┐
+│  📋 ВЫПОЛНИТЕ ЭТИ КОМАНДЫ:                               │
+└───────────────────────────────────────────────────────────┘
+
+# 1. Полные логи backend
+docker logs school-canteen-backend
+
+# 2. Проверьте, что сервер слушает порты
+docker exec school-canteen-backend netstat -tlnp
+
+# 3. Проверьте процессы в контейнере
+docker exec school-canteen-backend ps aux
+
+# 4. Попробуйте подключиться изнутри контейнера
+docker exec school-canteen-backend wget -O- --no-check-certificate https://localhost/health
+
+# 5. Попробуйте с хоста
+curl -k https://localhost/health
+
+# 6. Попробуйте извне
+curl -k https://autogreatfood.ru/health
+
+┌───────────────────────────────────────────────────────────┐
+│  🔍 ЧТО ИСКАТЬ В ЛОГАХ:                                  │
+└───────────────────────────────────────────────────────────┘
+
+Должно быть:
+   ✅ SSL certificates loaded successfully
+   ⏳ Waiting for PostgreSQL...
+   ✅ Database initialized
+   🔓 HTTP Server (redirect) running on port 80
+   🚀 HTTPS Server running on port 443
+      - Local:   https://localhost:443
+      - Network: https://autogreatfood.ru
+   🗄️  Database: PostgreSQL
+   🔒 SSL: Enabled
+
+Если НЕТ строк про "Server running", значит сервер упал.
+
+┌───────────────────────────────────────────────────────────┐
+│  ⚠️  ПРЕДУПРЕЖДЕНИЕ MemoryStore:                         │
+└───────────────────────────────────────────────────────────┘
+
+Warning: connect.session() MemoryStore is not designed 
+for a production environment
+
+Это НЕ критично, просто предупреждение. Сервер должен работать.
+
+┌───────────────────────────────────────────────────────────┐
+│  🌐 ПРОВЕРКА ДОСТУПА:                                    │
+└───────────────────────────────────────────────────────────┘
+
+# С сервера
+curl -k https://localhost/health
+
+# Извне
+curl -k https://autogreatfood.ru/health
+
+# В браузере
+https://autogreatfood.ru
+
+┌───────────────────────────────────────────────────────────┐
+│  🔧 ЕСЛИ СЕРВЕР НЕ ОТВЕЧАЕТ:                             │
+└───────────────────────────────────────────────────────────┘
+
+Возможные причины:
+
+1. Сервер упал после загрузки сертификатов
+   Решение: Посмотрите полные логи
+
+2. Сервер запустился, но не слушает на 0.0.0.0
+   Решение: Проверьте netstat в контейнере
+
+3. Firewall блокирует
+   Решение: sudo ufw allow 80/tcp && sudo ufw allow 443/tcp
+
+4. Проблема с базой данных
+   Решение: docker logs school-canteen-db
+
+┌───────────────────────────────────────────────────────────┐
+│  📊 БЫСТРАЯ ДИАГНОСТИКА:                                 │
+└───────────────────────────────────────────────────────────┘
+
+# Статус контейнеров
+docker ps
+
+Должно быть:
+   school-canteen-backend   Up X seconds (healthy)
+   school-canteen-db        Up X seconds (healthy)
+
+# Если backend unhealthy или restarting
+docker logs school-canteen-backend
+
+# Проверьте healthcheck
+docker inspect school-canteen-backend --format='{{json .State.Health}}' | python3 -m json.tool
+
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   📤 ПРИШЛИТЕ ПОЛНЫЕ ЛОГИ:                               ║
+║                                                           ║
+║   docker logs school-canteen-backend                     ║
+║                                                           ║
+║   И результат:                                           ║
+║   curl -k https://localhost/health                       ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
