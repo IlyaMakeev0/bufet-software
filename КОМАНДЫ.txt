@@ -1,0 +1,23 @@
+═══════════════════════════════════════════════════════════
+  🚀 КОМАНДЫ ДЛЯ ЗАПУСКА DOCKER
+═══════════════════════════════════════════════════════════
+
+Скопируйте и выполните по порядку:
+
+1. docker-compose down
+
+2. docker system prune -f
+
+3. docker-compose -f docker-compose.production.yml build --no-cache
+
+4. docker-compose -f docker-compose.production.yml up -d
+
+5. docker logs school-canteen-backend -f
+
+═══════════════════════════════════════════════════════════
+
+После запуска откройте: https://localhost:8443
+
+Проверка: curl -k https://localhost:8443/health
+
+═══════════════════════════════════════════════════════════

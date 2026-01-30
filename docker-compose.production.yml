@@ -29,7 +29,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: CICD/Dockerfile.backend
+      dockerfile: server/CICD/Dockerfile.backend
     container_name: school-canteen-backend
     restart: unless-stopped
     environment:

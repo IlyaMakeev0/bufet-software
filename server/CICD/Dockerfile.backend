@@ -3,7 +3,7 @@
 FROM node:18-alpine AS builder
 
 # Установка зависимостей для сборки
-RUN apk add --no-cache postgresql-client python3 make g++
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
@@ -11,10 +11,12 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем ВСЕ зависимости (включая dev для сборки фронтенда)
-RUN npm ci && npm cache clean --force
+RUN npm ci
 
-# Копируем исходный код
-COPY . .
+# Копируем только необходимые файлы для сборки фронтенда
+COPY src ./src
+COPY index.html ./
+COPY vite.config.js ./
 
 # Собираем фронтенд
 RUN npm run build
@@ -22,7 +24,7 @@ RUN npm run build
 # Production stage
 FROM node:18-alpine
 
-# Установка зависимостей для работы с PostgreSQL
+# Установка зависимостей для работы с PostgreSQL и wget
 RUN apk add --no-cache postgresql-client wget
 
 WORKDIR /app
@@ -31,17 +33,16 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем только production зависимости
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --only=production
 
 # Копируем исходный код сервера
 COPY server ./server
-COPY .env.production ./.env
 
 # Копируем собранный фронтенд из builder stage
 COPY --from=builder /app/dist ./dist
 
-# Копируем SSL сертификаты (будут монтированы через volume)
-# COPY cert ./cert
+# Создаем директорию для сертификатов (будут монтированы через volume)
+RUN mkdir -p /app/cert
 
 # Создаем пользователя без root прав
 RUN addgroup -g 1001 -S nodejs && \
