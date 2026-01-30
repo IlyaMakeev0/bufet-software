@@ -1,8 +1,11 @@
 import express from 'express'
+import https from 'https'
+import http from 'http'
+import fs from 'fs'
+import path from 'path'
 import session from 'express-session'
 import cors from 'cors'
 import os from 'os'
-import path from 'path'
 import { fileURLToPath } from 'url'
 import { initDatabase, getDb } from './database.js'
 import waitForDatabase from './wait-for-db.js'
@@ -20,7 +23,15 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const app = express()
-const PORT = process.env.PORT || 5000
+const HTTP_PORT = process.env.HTTP_PORT || 8080
+const HTTPS_PORT = process.env.HTTPS_PORT || 8443
+
+// SSL Certificate paths
+const certPath = path.join(__dirname, '..', 'cert')
+const sslOptions = {
+  key: fs.readFileSync(path.join(certPath, 'key.txt')),
+  cert: fs.readFileSync(path.join(certPath, 'www_autogreatfood_ru_2026_08_30.crt'))
+}
 
 // Middleware
 app.use(cors({
@@ -69,7 +80,15 @@ async function startServer() {
 
   // Health check endpoint
   app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() })
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      ssl: true,
+      ports: {
+        http: HTTP_PORT,
+        https: HTTPS_PORT
+      }
+    })
   })
 
   // Serve static files in production
@@ -83,26 +102,43 @@ async function startServer() {
     })
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on:`)
-    console.log(`   - Local:   http://localhost:${PORT}`)
-    console.log(`   - Network: http://127.0.0.1:${PORT}`)
-    console.log(`   - Network: http://0.0.0.0:${PORT}`)
+  // Start HTTP server (redirect to HTTPS)
+  const httpServer = http.createServer((req, res) => {
+    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` })
+    res.end()
+  })
+
+  httpServer.listen(HTTP_PORT, '0.0.0.0', () => {
+    console.log(`🔓 HTTP Server (redirect) running on port ${HTTP_PORT}`)
+  })
+
+  // Start HTTPS server
+  const httpsServer = https.createServer(sslOptions, app)
+
+  httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+    console.log(`\n🚀 HTTPS Server running on:`)
+    console.log(`   - Local:   https://localhost:${HTTPS_PORT}`)
+    console.log(`   - Network: https://127.0.0.1:${HTTPS_PORT}`)
+    console.log(`   - Network: https://0.0.0.0:${HTTPS_PORT}`)
     console.log(`\n📱 Alternative URLs:`)
-    console.log(`   - http://localhost:${PORT}`)
-    console.log(`   - http://127.0.0.1:${PORT}`)
+    console.log(`   - https://localhost:${HTTPS_PORT}`)
+    console.log(`   - https://127.0.0.1:${HTTPS_PORT}`)
+    console.log(`   - https://autogreatfood.ru`)
     
     // Получить локальный IP
     const networkInterfaces = os.networkInterfaces()
     Object.keys(networkInterfaces).forEach(interfaceName => {
       networkInterfaces[interfaceName].forEach(iface => {
         if (iface.family === 'IPv4' && !iface.internal) {
-          console.log(`   - http://${iface.address}:${PORT}`)
+          console.log(`   - https://${iface.address}:${HTTPS_PORT}`)
         }
       })
     })
     
     console.log(`\n🗄️  Database: PostgreSQL`)
+    console.log(`🔒 SSL: Enabled`)
+    console.log(`📜 Certificate: www_autogreatfood_ru_2026_08_30.crt`)
+    console.log(`🔑 Private Key: key.txt`)
   })
 }
 
