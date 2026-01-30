@@ -23,8 +23,8 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const app = express()
-const HTTP_PORT = process.env.HTTP_PORT || 8080
-const HTTPS_PORT = process.env.HTTPS_PORT || 8443
+const HTTP_PORT = process.env.HTTP_PORT || 80
+const HTTPS_PORT = process.env.HTTPS_PORT || 443
 
 // SSL Certificate paths
 const certPath = path.join(__dirname, '..', 'cert')

@@ -1,0 +1,36 @@
+═══════════════════════════════════════════════════════════
+  ⚡ ЗАПУСК НА ПОРТАХ 80 И 443
+═══════════════════════════════════════════════════════════
+
+Выполните на сервере:
+
+docker-compose -f docker-compose.production.yml down --remove-orphans
+
+docker-compose -f docker-compose.production.yml build --no-cache backend
+
+docker-compose -f docker-compose.production.yml up -d
+
+docker logs school-canteen-backend -f
+
+═══════════════════════════════════════════════════════════
+
+Откройте порты в firewall:
+
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+
+═══════════════════════════════════════════════════════════
+
+После запуска откройте в браузере:
+
+https://autogreatfood.ru
+
+БЕЗ указания порта!
+
+═══════════════════════════════════════════════════════════
+
+Проверка:
+
+curl -k https://autogreatfood.ru/health
+
+═══════════════════════════════════════════════════════════

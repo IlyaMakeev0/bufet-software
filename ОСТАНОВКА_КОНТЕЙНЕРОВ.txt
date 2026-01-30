@@ -1,0 +1,31 @@
+═══════════════════════════════════════════════════════════
+  ⚡ ОСТАНОВКА КОНТЕЙНЕРОВ
+═══════════════════════════════════════════════════════════
+
+Выполните на сервере:
+
+# ВАРИАНТ 1 - С флагом --remove-orphans:
+docker-compose -f docker-compose.production.yml down --remove-orphans
+
+# ВАРИАНТ 2 - Остановить контейнеры вручную:
+docker stop school-canteen-backend school-canteen-db
+docker rm school-canteen-backend school-canteen-db
+docker network rm bufet-software_canteen-network
+
+# ВАРИАНТ 3 - Остановить ВСЕ контейнеры:
+docker stop $(docker ps -aq)
+docker rm $(docker ps -aq)
+
+═══════════════════════════════════════════════════════════
+
+Проверка:
+   docker ps -a
+
+Должно быть пусто или без ваших контейнеров.
+
+═══════════════════════════════════════════════════════════
+
+Затем запустите заново:
+   docker-compose -f docker-compose.production.yml up -d
+
+═══════════════════════════════════════════════════════════
