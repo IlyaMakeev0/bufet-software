@@ -1,0 +1,193 @@
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   🔧 ИСПРАВЛЕНИЕ ОШИБКИ ContainerConfig                  ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────┐
+│  ПРИЧИНА ОШИБКИ:                                         │
+└───────────────────────────────────────────────────────────┘
+
+Старая версия docker-compose (1.29.2) конфликтует с 
+существующими контейнерами PostgreSQL.
+
+Нужно полностью удалить старые контейнеры и volumes.
+
+┌───────────────────────────────────────────────────────────┐
+│  🚀 РЕШЕНИЕ - ВЫПОЛНИТЕ ЭТИ КОМАНДЫ:                     │
+└───────────────────────────────────────────────────────────┘
+
+1️⃣  Остановите и удалите ВСЕ контейнеры проекта:
+
+    docker-compose -f docker-compose.production.yml down -v
+
+
+2️⃣  Удалите контейнеры вручную (если остались):
+
+    docker rm -f school-canteen-backend school-canteen-db school-canteen-frontend
+
+
+3️⃣  Удалите volumes:
+
+    docker volume rm bufet-software_postgres_data
+
+
+4️⃣  Очистите неиспользуемые ресурсы:
+
+    docker system prune -a -f --volumes
+
+
+5️⃣  Проверьте, что всё удалено:
+
+    docker ps -a
+    docker volume ls
+
+
+6️⃣  Теперь запустите заново:
+
+    docker-compose -f docker-compose.production.yml up -d
+
+
+7️⃣  Проверьте логи:
+
+    docker logs school-canteen-backend -f
+
+┌───────────────────────────────────────────────────────────┐
+│  ⚠️  АЛЬТЕРНАТИВНОЕ РЕШЕНИЕ (если не помогло):           │
+└───────────────────────────────────────────────────────────┘
+
+Используйте docker compose V2 (без дефиса):
+
+1️⃣  Проверьте версию:
+
+    docker compose version
+
+
+2️⃣  Если V2 установлен, используйте его:
+
+    docker compose -f docker-compose.production.yml down -v
+    docker compose -f docker-compose.production.yml up -d
+
+
+3️⃣  Если V2 не установлен, установите:
+
+    # Для Ubuntu/Debian:
+    sudo apt-get update
+    sudo apt-get install docker-compose-plugin
+    
+    # Проверка:
+    docker compose version
+
+┌───────────────────────────────────────────────────────────┐
+│  📝 ПОЛНАЯ ПОСЛЕДОВАТЕЛЬНОСТЬ КОМАНД:                    │
+└───────────────────────────────────────────────────────────┘
+
+Скопируйте и выполните всё сразу:
+
+# Остановка и удаление
+docker-compose -f docker-compose.production.yml down -v
+docker rm -f school-canteen-backend school-canteen-db school-canteen-frontend 2>/dev/null || true
+docker volume rm bufet-software_postgres_data 2>/dev/null || true
+docker system prune -a -f --volumes
+
+# Проверка
+echo "=== Проверка контейнеров ==="
+docker ps -a
+echo "=== Проверка volumes ==="
+docker volume ls
+
+# Запуск
+docker-compose -f docker-compose.production.yml up -d
+
+# Логи
+docker logs school-canteen-backend -f
+
+┌───────────────────────────────────────────────────────────┐
+│  🔍 ЧТО ДОЛЖНО ПОЛУЧИТЬСЯ:                               │
+└───────────────────────────────────────────────────────────┘
+
+После команды "docker ps" должно быть:
+
+CONTAINER ID   IMAGE                    STATUS
+xxxxx          bufet-software-backend   Up X seconds
+xxxxx          postgres:15-alpine       Up X seconds (healthy)
+
+В логах backend должно быть:
+
+⏳ Waiting for PostgreSQL...
+✅ Database initialized
+🚀 HTTPS Server running on port 8443
+🔒 SSL: Enabled
+📜 Certificate: www_autogreatfood_ru_2026_08_30.crt
+
+┌───────────────────────────────────────────────────────────┐
+│  ⚠️  ВАЖНО:                                              │
+└───────────────────────────────────────────────────────────┘
+
+• Команда "down -v" удалит ВСЕ данные из базы!
+  
+• Если у вас есть важные данные, сделайте backup:
+  
+  docker exec school-canteen-db pg_dump -U canteen_user school_canteen > backup.sql
+
+• После запуска база будет пустая, нужно будет:
+  - Создать тестовые аккаунты заново
+  - Или восстановить из backup
+
+┌───────────────────────────────────────────────────────────┐
+│  🛠️  ЕСЛИ ОШИБКА ПОВТОРЯЕТСЯ:                            │
+└───────────────────────────────────────────────────────────┘
+
+1. Проверьте версию Docker:
+   
+   docker --version
+   docker-compose --version
+   
+   Рекомендуется:
+   - Docker: 20.10+
+   - docker-compose: 2.0+ (или используйте "docker compose")
+
+
+2. Перезапустите Docker daemon:
+   
+   sudo systemctl restart docker
+
+
+3. Проверьте права доступа:
+   
+   sudo usermod -aG docker $USER
+   newgrp docker
+
+
+4. Проверьте место на диске:
+   
+   df -h
+   docker system df
+
+┌───────────────────────────────────────────────────────────┐
+│  📊 ДИАГНОСТИКА:                                         │
+└───────────────────────────────────────────────────────────┘
+
+Если нужно понять, что не так:
+
+# Посмотреть все контейнеры (включая остановленные)
+docker ps -a
+
+# Посмотреть все volumes
+docker volume ls
+
+# Посмотреть все образы
+docker images
+
+# Посмотреть использование диска
+docker system df
+
+# Детальная информация о контейнере
+docker inspect school-canteen-db
+
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   ✅ ПОСЛЕ ВЫПОЛНЕНИЯ КОМАНД ВЫШЕ                        ║
+║      ОШИБКА ДОЛЖНА ИСЧЕЗНУТЬ                             ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝

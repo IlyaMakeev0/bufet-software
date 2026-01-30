@@ -1,0 +1,37 @@
+═══════════════════════════════════════════════════════════
+  ⚡ БЫСТРОЕ РЕШЕНИЕ ОШИБКИ ContainerConfig
+═══════════════════════════════════════════════════════════
+
+Скопируйте и выполните эти команды на сервере:
+
+# 1. Полная очистка
+docker-compose -f docker-compose.production.yml down -v
+docker rm -f school-canteen-backend school-canteen-db school-canteen-frontend 2>/dev/null || true
+docker volume rm bufet-software_postgres_data 2>/dev/null || true
+docker system prune -a -f --volumes
+
+# 2. Проверка (должно быть пусто)
+docker ps -a
+docker volume ls
+
+# 3. Запуск заново
+docker-compose -f docker-compose.production.yml up -d
+
+# 4. Проверка логов
+docker logs school-canteen-backend -f
+
+═══════════════════════════════════════════════════════════
+
+⚠️  ВАЖНО: Команда "down -v" удалит все данные из базы!
+
+═══════════════════════════════════════════════════════════
+
+После запуска откройте: https://localhost:8443
+
+Проверка: curl -k https://localhost:8443/health
+
+═══════════════════════════════════════════════════════════
+
+Если не помогло, смотрите: ИСПРАВЛЕНИЕ_CONTAINERCONFIG.txt
+
+═══════════════════════════════════════════════════════════
