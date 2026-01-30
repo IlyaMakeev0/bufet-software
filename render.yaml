@@ -16,8 +16,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
       - key: DB_HOST
         fromDatabase:
           name: school-canteen-db
