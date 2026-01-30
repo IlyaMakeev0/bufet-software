@@ -1,0 +1,31 @@
+═══════════════════════════════════════════════════════════
+  ⚡ ФИНАЛЬНЫЕ КОМАНДЫ
+═══════════════════════════════════════════════════════════
+
+Скопируйте и выполните на сервере:
+
+docker-compose -f docker-compose.production.yml down
+
+docker volume rm bufet-software_postgres_data
+
+docker-compose -f docker-compose.production.yml up -d
+
+docker logs school-canteen-backend -f
+
+═══════════════════════════════════════════════════════════
+
+После запуска откройте:
+   https://localhost:8443
+   или
+   http://localhost:8080
+
+Проверка:
+   curl -k https://localhost:8443/health
+
+═══════════════════════════════════════════════════════════
+
+Если не работает, пришлите:
+   docker logs school-canteen-db
+   docker logs school-canteen-backend
+
+═══════════════════════════════════════════════════════════

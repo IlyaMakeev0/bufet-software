@@ -1,0 +1,114 @@
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   ✅ POSTGRES ИСПРАВЛЕН                                  ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────┐
+│  ЧТО БЫЛО ИСПРАВЛЕНО:                                    │
+└───────────────────────────────────────────────────────────┘
+
+✅ Убраны SQL файлы инициализации (могли вызывать ошибки)
+✅ Убран устаревший параметр version из docker-compose
+✅ Упрощена конфигурация PostgreSQL
+
+Теперь база данных будет создаваться автоматически через
+код сервера (server/database.js), а не через SQL файлы.
+
+┌───────────────────────────────────────────────────────────┐
+│  🚀 КОМАНДЫ ДЛЯ ЗАПУСКА:                                 │
+└───────────────────────────────────────────────────────────┘
+
+Выполните на сервере:
+
+# 1. Остановите всё
+docker-compose -f docker-compose.production.yml down
+
+# 2. Удалите старый volume PostgreSQL
+docker volume rm bufet-software_postgres_data
+
+# 3. Запустите всё заново
+docker-compose -f docker-compose.production.yml up -d
+
+# 4. Следите за логами
+docker logs school-canteen-backend -f
+
+┌───────────────────────────────────────────────────────────┐
+│  🔍 ЧТО ДОЛЖНО БЫТЬ В ЛОГАХ:                             │
+└───────────────────────────────────────────────────────────┘
+
+PostgreSQL:
+   PostgreSQL Database directory appears to contain a database
+   или
+   database system is ready to accept connections
+
+Backend:
+   ⏳ Waiting for PostgreSQL...
+   ✅ Database initialized
+   🚀 HTTPS Server running on port 8443
+   (или HTTP Server на 8080)
+
+┌───────────────────────────────────────────────────────────┐
+│  🌐 ДОСТУП:                                              │
+└───────────────────────────────────────────────────────────┘
+
+https://localhost:8443
+или
+http://localhost:8080
+
+Проверка:
+   curl -k https://localhost:8443/health
+
+┌───────────────────────────────────────────────────────────┐
+│  ⚠️  ЕСЛИ POSTGRES ВСЁ ЕЩЁ НЕ ЗАПУСКАЕТСЯ:              │
+└───────────────────────────────────────────────────────────┘
+
+1. Проверьте логи PostgreSQL:
+
+   docker logs school-canteen-db
+
+
+2. Проверьте, что порт 5432 свободен:
+
+   netstat -tlnp | grep 5432
+
+
+3. Если порт занят, измените в docker-compose.production.yml:
+
+   ports:
+     - "5433:5432"  # Используем 5433 вместо 5432
+
+
+4. Проверьте права на volume:
+
+   docker volume inspect bufet-software_postgres_data
+
+
+5. Попробуйте запустить PostgreSQL отдельно:
+
+   docker-compose -f docker-compose.production.yml up postgres
+
+┌───────────────────────────────────────────────────────────┐
+│  📊 ПРОВЕРКА СТАТУСА:                                    │
+└───────────────────────────────────────────────────────────┘
+
+# Статус контейнеров
+docker ps
+
+Должно быть:
+   school-canteen-backend   Up X seconds (healthy)
+   school-canteen-db        Up X seconds (healthy)
+
+# Проверка подключения к PostgreSQL
+docker exec school-canteen-db psql -U canteen_user -d school_canteen -c "SELECT 1;"
+
+Должно вернуть:
+   ?column?
+   ----------
+          1
+
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   🎉 ТЕПЕРЬ ДОЛЖНО ЗАПУСТИТЬСЯ                           ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝

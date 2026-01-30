@@ -41,12 +41,12 @@ COPY server ./server
 # Копируем собранный фронтенд из builder stage
 COPY --from=builder /app/dist ./dist
 
-# Создаем директорию для сертификатов (будут монтированы через volume)
-RUN mkdir -p /app/cert
-
 # Создаем пользователя без root прав
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 && \
+    adduser -S nodejs -u 1001
+
+# Создаем директорию для сертификатов (будут монтированы через volume)
+RUN mkdir -p /app/cert && \
     chown -R nodejs:nodejs /app
 
 USER nodejs
@@ -54,9 +54,10 @@ USER nodejs
 # Открываем порты для HTTP и HTTPS
 EXPOSE 8080 8443
 
-# Healthcheck для HTTPS
+# Healthcheck - проверяет HTTPS, если не работает, то HTTP
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD wget --quiet --tries=1 --spider --no-check-certificate https://localhost:8443/health || exit 1
+    CMD wget --quiet --tries=1 --spider --no-check-certificate https://localhost:8443/health || \
+        wget --quiet --tries=1 --spider http://localhost:8080/health || exit 1
 
 # Запускаем сервер
 CMD ["node", "server/index.js"]

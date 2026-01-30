@@ -1,0 +1,36 @@
+═══════════════════════════════════════════════════════════
+  ⚡ ВЫПОЛНИТЕ ЭТИ КОМАНДЫ ПРЯМО СЕЙЧАС
+═══════════════════════════════════════════════════════════
+
+Скопируйте и выполните на сервере:
+
+docker-compose -f docker-compose.production.yml down
+
+docker rm -f school-canteen-db school-canteen-backend
+
+docker volume rm -f bufet-software_postgres_data
+
+docker volume prune -f
+
+docker volume ls
+
+docker-compose -f docker-compose.production.yml up -d
+
+docker logs school-canteen-backend -f
+
+═══════════════════════════════════════════════════════════
+
+После запуска откройте:
+   https://localhost:8443
+   или
+   http://localhost:8080
+
+Проверка:
+   curl -k https://localhost:8443/health
+
+═══════════════════════════════════════════════════════════
+
+Если volume не удаляется, смотрите:
+   РЕШЕНИЕ_VOLUME_NOT_EMPTY.txt
+
+═══════════════════════════════════════════════════════════

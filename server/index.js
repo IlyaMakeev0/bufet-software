@@ -28,9 +28,26 @@ const HTTPS_PORT = process.env.HTTPS_PORT || 8443
 
 // SSL Certificate paths
 const certPath = path.join(__dirname, '..', 'cert')
-const sslOptions = {
-  key: fs.readFileSync(path.join(certPath, 'key.txt')),
-  cert: fs.readFileSync(path.join(certPath, 'www_autogreatfood_ru_2026_08_30.crt'))
+const keyPath = path.join(certPath, 'key.txt')
+const certFilePath = path.join(certPath, 'www_autogreatfood_ru_2026_08_30.crt')
+
+// Check if SSL certificates exist
+let sslOptions = null
+try {
+  if (fs.existsSync(keyPath) && fs.existsSync(certFilePath)) {
+    sslOptions = {
+      key: fs.readFileSync(keyPath),
+      cert: fs.readFileSync(certFilePath)
+    }
+    console.log('✅ SSL certificates loaded successfully')
+  } else {
+    console.warn('⚠️  SSL certificates not found, will run HTTP only')
+    console.warn(`   Key: ${keyPath}`)
+    console.warn(`   Cert: ${certFilePath}`)
+  }
+} catch (error) {
+  console.error('❌ Error loading SSL certificates:', error.message)
+  console.warn('⚠️  Will run HTTP only')
 }
 
 // Middleware
@@ -83,10 +100,10 @@ async function startServer() {
     res.json({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
-      ssl: true,
+      ssl: !!sslOptions,
       ports: {
         http: HTTP_PORT,
-        https: HTTPS_PORT
+        https: sslOptions ? HTTPS_PORT : null
       }
     })
   })
@@ -102,44 +119,73 @@ async function startServer() {
     })
   }
 
-  // Start HTTP server (redirect to HTTPS)
-  const httpServer = http.createServer((req, res) => {
-    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` })
-    res.end()
-  })
-
-  httpServer.listen(HTTP_PORT, '0.0.0.0', () => {
-    console.log(`🔓 HTTP Server (redirect) running on port ${HTTP_PORT}`)
-  })
-
-  // Start HTTPS server
-  const httpsServer = https.createServer(sslOptions, app)
-
-  httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
-    console.log(`\n🚀 HTTPS Server running on:`)
-    console.log(`   - Local:   https://localhost:${HTTPS_PORT}`)
-    console.log(`   - Network: https://127.0.0.1:${HTTPS_PORT}`)
-    console.log(`   - Network: https://0.0.0.0:${HTTPS_PORT}`)
-    console.log(`\n📱 Alternative URLs:`)
-    console.log(`   - https://localhost:${HTTPS_PORT}`)
-    console.log(`   - https://127.0.0.1:${HTTPS_PORT}`)
-    console.log(`   - https://autogreatfood.ru`)
-    
-    // Получить локальный IP
-    const networkInterfaces = os.networkInterfaces()
-    Object.keys(networkInterfaces).forEach(interfaceName => {
-      networkInterfaces[interfaceName].forEach(iface => {
-        if (iface.family === 'IPv4' && !iface.internal) {
-          console.log(`   - https://${iface.address}:${HTTPS_PORT}`)
-        }
-      })
+  // Start servers based on SSL availability
+  if (sslOptions) {
+    // Start HTTP server (redirect to HTTPS)
+    const httpServer = http.createServer((req, res) => {
+      res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` })
+      res.end()
     })
-    
-    console.log(`\n🗄️  Database: PostgreSQL`)
-    console.log(`🔒 SSL: Enabled`)
-    console.log(`📜 Certificate: www_autogreatfood_ru_2026_08_30.crt`)
-    console.log(`🔑 Private Key: key.txt`)
-  })
+
+    httpServer.listen(HTTP_PORT, '0.0.0.0', () => {
+      console.log(`🔓 HTTP Server (redirect) running on port ${HTTP_PORT}`)
+    })
+
+    // Start HTTPS server
+    const httpsServer = https.createServer(sslOptions, app)
+
+    httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+      console.log(`\n🚀 HTTPS Server running on:`)
+      console.log(`   - Local:   https://localhost:${HTTPS_PORT}`)
+      console.log(`   - Network: https://127.0.0.1:${HTTPS_PORT}`)
+      console.log(`   - Network: https://0.0.0.0:${HTTPS_PORT}`)
+      console.log(`\n📱 Alternative URLs:`)
+      console.log(`   - https://localhost:${HTTPS_PORT}`)
+      console.log(`   - https://127.0.0.1:${HTTPS_PORT}`)
+      console.log(`   - https://autogreatfood.ru`)
+      
+      // Получить локальный IP
+      const networkInterfaces = os.networkInterfaces()
+      Object.keys(networkInterfaces).forEach(interfaceName => {
+        networkInterfaces[interfaceName].forEach(iface => {
+          if (iface.family === 'IPv4' && !iface.internal) {
+            console.log(`   - https://${iface.address}:${HTTPS_PORT}`)
+          }
+        })
+      })
+      
+      console.log(`\n🗄️  Database: PostgreSQL`)
+      console.log(`🔒 SSL: Enabled`)
+      console.log(`📜 Certificate: www_autogreatfood_ru_2026_08_30.crt`)
+      console.log(`🔑 Private Key: key.txt`)
+    })
+  } else {
+    // Start HTTP server only
+    const httpServer = http.createServer(app)
+
+    httpServer.listen(HTTP_PORT, '0.0.0.0', () => {
+      console.log(`\n🚀 HTTP Server running on:`)
+      console.log(`   - Local:   http://localhost:${HTTP_PORT}`)
+      console.log(`   - Network: http://127.0.0.1:${HTTP_PORT}`)
+      console.log(`   - Network: http://0.0.0.0:${HTTP_PORT}`)
+      console.log(`\n📱 Alternative URLs:`)
+      console.log(`   - http://localhost:${HTTP_PORT}`)
+      console.log(`   - http://127.0.0.1:${HTTP_PORT}`)
+      
+      // Получить локальный IP
+      const networkInterfaces = os.networkInterfaces()
+      Object.keys(networkInterfaces).forEach(interfaceName => {
+        networkInterfaces[interfaceName].forEach(iface => {
+          if (iface.family === 'IPv4' && !iface.internal) {
+            console.log(`   - http://${iface.address}:${HTTP_PORT}`)
+          }
+        })
+      })
+      
+      console.log(`\n🗄️  Database: PostgreSQL`)
+      console.log(`⚠️  SSL: Disabled (certificates not found)`)
+    })
+  }
 }
 
 startServer()

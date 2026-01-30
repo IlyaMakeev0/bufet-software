@@ -1,0 +1,27 @@
+═══════════════════════════════════════════════════════════
+  ⚡ ВЫПОЛНИТЕ ЭТИ КОМАНДЫ СЕЙЧАС
+═══════════════════════════════════════════════════════════
+
+docker-compose -f docker-compose.production.yml down
+
+docker-compose -f docker-compose.production.yml build --no-cache backend
+
+docker-compose -f docker-compose.production.yml up -d
+
+docker logs school-canteen-backend -f
+
+═══════════════════════════════════════════════════════════
+
+После запуска откройте:
+   https://localhost:8443  (если SSL работает)
+   http://localhost:8080   (если SSL не работает)
+
+Проверка:
+   curl -k https://localhost:8443/health
+   curl http://localhost:8080/health
+
+═══════════════════════════════════════════════════════════
+
+Подробности: ПЕРЕСБОРКА_С_ИСПРАВЛЕНИЯМИ.txt
+
+═══════════════════════════════════════════════════════════

@@ -1,0 +1,77 @@
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   🔍 ДИАГНОСТИКА ПРОБЛЕМЫ POSTGRES                       ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
+
+┌───────────────────────────────────────────────────────────┐
+│  ПРОБЛЕМА:                                               │
+└───────────────────────────────────────────────────────────┘
+
+dependency failed to start: container school-canteen-db is unhealthy
+
+PostgreSQL не запускается или не проходит healthcheck.
+
+┌───────────────────────────────────────────────────────────┐
+│  🔍 КОМАНДЫ ДЛЯ ДИАГНОСТИКИ:                             │
+└───────────────────────────────────────────────────────────┘
+
+1️⃣  Посмотрите логи PostgreSQL:
+
+    docker logs school-canteen-db
+
+
+2️⃣  Проверьте статус контейнера:
+
+    docker ps -a | grep postgres
+
+
+3️⃣  Попробуйте запустить PostgreSQL отдельно:
+
+    docker-compose -f docker-compose.production.yml up postgres
+
+
+4️⃣  Проверьте volumes:
+
+    docker volume ls | grep postgres
+
+┌───────────────────────────────────────────────────────────┐
+│  🚀 БЫСТРОЕ РЕШЕНИЕ:                                     │
+└───────────────────────────────────────────────────────────┘
+
+Выполните на сервере:
+
+# 1. Остановите всё
+docker-compose -f docker-compose.production.yml down
+
+# 2. Удалите volume PostgreSQL
+docker volume rm bufet-software_postgres_data
+
+# 3. Запустите только PostgreSQL
+docker-compose -f docker-compose.production.yml up -d postgres
+
+# 4. Подождите 10 секунд и проверьте логи
+sleep 10
+docker logs school-canteen-db
+
+# 5. Если PostgreSQL запустился, запустите backend
+docker-compose -f docker-compose.production.yml up -d backend
+
+# 6. Проверьте логи backend
+docker logs school-canteen-backend -f
+
+┌───────────────────────────────────────────────────────────┐
+│  📋 ПРИШЛИТЕ РЕЗУЛЬТАТ:                                  │
+└───────────────────────────────────────────────────────────┘
+
+Выполните и пришлите результат:
+
+docker logs school-canteen-db
+
+Это поможет понять причину проблемы.
+
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║   📤 ПРИШЛИТЕ ЛОГИ POSTGRES                              ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
