@@ -12,16 +12,20 @@
 
 🚀 КОМАНДЫ ДЛЯ ПРИМЕНЕНИЯ:
 
-1. Применить миграцию БД:
-   
-   sqlite3 school_canteen.db < add-notifications-table.sql
-
-2. Перезапустить Docker:
+1. Остановить контейнеры:
    
    docker-compose -f docker-compose.production.yml down
+
+2. Применить миграцию БД (PostgreSQL):
+   
+   docker-compose -f docker-compose.production.yml up -d postgres
+   docker exec -i school-canteen-db psql -U canteen_user -d school_canteen < add-notifications-table.sql
+
+3. Пересобрать и запустить все контейнеры:
+   
    docker-compose -f docker-compose.production.yml up -d --build
 
-3. Проверить логи:
+4. Проверить логи:
    
    docker-compose -f docker-compose.production.yml logs -f backend
 
@@ -60,9 +64,23 @@
 📝 ВАЖНО:
 
 - Все изменения уже применены в коде
+- Используется PostgreSQL база данных (не SQLite)
 - Нужно только применить миграцию БД и перезапустить
 - Старые QR-коды в БД будут заменены на числовые при следующей генерации
 - Библиотека qrcode больше не нужна (можно удалить из package.json)
+
+═══════════════════════════════════════════════════════════════
+
+🔧 АЛЬТЕРНАТИВНЫЙ СПОСОБ (если первый не работает):
+
+1. Остановить все:
+   docker-compose -f docker-compose.production.yml down -v
+
+2. Запустить заново:
+   docker-compose -f docker-compose.production.yml up -d --build
+
+3. Применить миграцию после запуска:
+   docker exec -i school-canteen-db psql -U canteen_user -d school_canteen < add-notifications-table.sql
 
 ═══════════════════════════════════════════════════════════════
 

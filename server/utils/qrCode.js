@@ -1,6 +1,6 @@
 // Генерация и валидация числовых кодов для заказов
 import crypto from 'crypto'
-import { getQuery, runQuery } from '../database.js'
+import { getQuery, runQuery } from '../database-adapter.js'
 
 // Генерация уникального 6-значного кода для заказа
 export async function generateOrderQRCode(orderId, userId) {
@@ -16,7 +16,7 @@ export async function generateOrderQRCode(orderId, userId) {
       // Проверяем, не используется ли уже этот код
       const existing = await getQuery(`
         SELECT id FROM orders 
-        WHERE qr_token = ? AND qr_expires_at > datetime('now')
+        WHERE qr_token = ? AND qr_expires_at > CURRENT_TIMESTAMP
       `, [numericCode])
       
       if (!existing) {
@@ -164,7 +164,7 @@ export async function issueOrderByQRCode(orderId, chefId) {
     await runQuery(`
       UPDATE orders 
       SET status = 'выдан',
-          issued_at = datetime('now'),
+          issued_at = CURRENT_TIMESTAMP,
           issued_by = ?
       WHERE id = ?
     `, [chefId, orderId])
@@ -203,7 +203,7 @@ export async function generateSubscriptionQRCode(subscriptionId, userId) {
       
       const existing = await getQuery(`
         SELECT id FROM subscriptions 
-        WHERE qr_token = ? AND qr_expires_at > datetime('now')
+        WHERE qr_token = ? AND qr_expires_at > CURRENT_TIMESTAMP
       `, [numericCode])
       
       if (!existing) {

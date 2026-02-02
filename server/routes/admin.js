@@ -190,7 +190,7 @@ router.put('/purchase-requests/:id', async (req, res) => {
       const notificationId = uuidv4()
       await runQuery(`
         INSERT INTO notifications (id, user_id, type, title, message, created_at)
-        VALUES (?, ?, ?, ?, ?, datetime('now'))
+        VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
       `, [
         notificationId,
         purchaseRequest.created_by,
