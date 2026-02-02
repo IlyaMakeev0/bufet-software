@@ -1,0 +1,56 @@
+═══════════════════════════════════════════════════════════════
+  ИСПРАВЛЕНИЕ ОШИБКИ: relation "menu_requests" does not exist
+═══════════════════════════════════════════════════════════════
+
+❌ ПРОБЛЕМА: Таблица menu_requests не существует в базе данных
+
+✅ РЕШЕНИЕ: Применить миграцию для создания всех недостающих таблиц
+
+═══════════════════════════════════════════════════════════════
+
+🚀 БЫСТРОЕ ИСПРАВЛЕНИЕ (3 команды):
+
+1. Запустить PostgreSQL:
+   docker-compose -f docker-compose.production.yml up -d postgres
+
+2. Подождать 10 секунд, затем применить миграцию:
+   docker exec -i school-canteen-db psql -U canteen_user -d school_canteen < add-menu-requests-and-notifications.sql
+
+3. Перезапустить backend:
+   docker-compose -f docker-compose.production.yml restart backend
+
+═══════════════════════════════════════════════════════════════
+
+📋 ЧТО СОЗДАСТ МИГРАЦИЯ:
+
+✅ menu_requests - заявки на новые блюда
+✅ notifications - уведомления для поваров
+✅ menu_ingredients - ингредиенты блюд
+✅ inventory - склад продуктов
+✅ inventory_log - история изменений склада
+✅ purchase_requests - заявки на закупку
+✅ Поля для QR-кодов в orders и subscriptions
+✅ Поля для верификации email в users
+
+═══════════════════════════════════════════════════════════════
+
+✅ ПРОВЕРКА:
+
+После применения попробуйте снова создать заявку на новое блюдо.
+Ошибка должна исчезнуть!
+
+═══════════════════════════════════════════════════════════════
+
+💡 АЛЬТЕРНАТИВА (если не работает):
+
+Полная перезагрузка с миграцией:
+
+docker-compose -f docker-compose.production.yml down
+docker-compose -f docker-compose.production.yml up -d postgres
+sleep 10
+docker exec -i school-canteen-db psql -U canteen_user -d school_canteen < add-menu-requests-and-notifications.sql
+docker-compose -f docker-compose.production.yml up -d --build
+
+═══════════════════════════════════════════════════════════════
+
+✨ ГОТОВО! Теперь можно создавать заявки на новые блюда.

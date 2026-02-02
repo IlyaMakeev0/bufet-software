@@ -20,7 +20,7 @@ docker-compose -f docker-compose.production.yml up -d postgres
 
 Подождите 10 секунд, затем:
 
-docker exec -i school-canteen-db psql -U canteen_user -d school_canteen < add-notifications-table.sql
+docker exec -i school-canteen-db psql -U canteen_user -d school_canteen < add-menu-requests-and-notifications.sql
 
 
 ┌───────────────────────────────────────────────────────────────┐
@@ -50,6 +50,7 @@ docker-compose -f docker-compose.production.yml logs -f backend
 ✅ QR-коды → 6-значные числовые коды
 ✅ Исправлена ошибка предложения блюда
 ✅ Уведомления для повара при одобрении закупки
+✅ Добавлены все недостающие таблицы
 
 
 ╔═══════════════════════════════════════════════════════════════╗
@@ -63,7 +64,7 @@ docker-compose -f docker-compose.production.yml up -d --build
 
 Затем применить миграцию:
 
-docker exec -i school-canteen-db psql -U canteen_user -d school_canteen < add-notifications-table.sql
+docker exec -i school-canteen-db psql -U canteen_user -d school_canteen < add-menu-requests-and-notifications.sql
 
 
 ✨ ГОТОВО!
