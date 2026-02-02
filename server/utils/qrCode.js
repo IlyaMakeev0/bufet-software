@@ -1,84 +1,69 @@
-// Генерация и валидация QR-кодов для заказов
-import QRCode from 'qrcode'
+// Генерация и валидация числовых кодов для заказов
 import crypto from 'crypto'
 import { getQuery, runQuery } from '../database.js'
 
-// Генерация уникального QR-кода для заказа
+// Генерация уникального 6-значного кода для заказа
 export async function generateOrderQRCode(orderId, userId) {
   try {
-    // Создаем уникальный токен для QR-кода
-    const token = crypto.randomBytes(32).toString('hex')
+    // Генерируем уникальный 6-значный код
+    let numericCode
+    let isUnique = false
+    
+    // Проверяем уникальность кода
+    while (!isUnique) {
+      numericCode = Math.floor(100000 + Math.random() * 900000).toString()
+      
+      // Проверяем, не используется ли уже этот код
+      const existing = await getQuery(`
+        SELECT id FROM orders 
+        WHERE qr_token = ? AND qr_expires_at > datetime('now')
+      `, [numericCode])
+      
+      if (!existing) {
+        isUnique = true
+      }
+    }
+    
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 часа
     
-    // Сохраняем токен в БД
+    // Сохраняем код в БД
     await runQuery(`
       UPDATE orders 
       SET qr_token = ?, qr_expires_at = ?
       WHERE id = ? AND user_id = ?
-    `, [token, expiresAt.toISOString(), orderId, userId])
+    `, [numericCode, expiresAt.toISOString(), orderId, userId])
     
-    // Данные для QR-кода
-    const qrData = JSON.stringify({
-      orderId,
-      token,
-      type: 'order',
-      timestamp: Date.now()
-    })
-    
-    // Генерируем QR-код как Data URL
-    const qrCodeDataURL = await QRCode.toDataURL(qrData, {
-      errorCorrectionLevel: 'H',
-      type: 'image/png',
-      width: 300,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    })
-    
-    console.log(`✅ QR code generated for order ${orderId}`)
+    console.log(`✅ Numeric code generated for order ${orderId}: ${numericCode}`)
     
     return {
       success: true,
-      qrCode: qrCodeDataURL,
-      token,
+      qrCode: numericCode, // Теперь это числовой код, а не QR-изображение
+      token: numericCode,
       expiresAt
     }
   } catch (error) {
-    console.error('❌ Failed to generate QR code:', error)
+    console.error('❌ Failed to generate numeric code:', error)
     return {
       success: false,
-      error: 'Не удалось сгенерировать QR-код'
+      error: 'Не удалось сгенерировать код'
     }
   }
 }
 
-// Валидация QR-кода при сканировании
+// Валидация числового кода при вводе
 export async function validateOrderQRCode(qrData) {
   try {
-    // Парсим данные из QR-кода
-    let data
-    try {
-      data = JSON.parse(qrData)
-    } catch (e) {
+    // Проверяем, является ли это 6-значным числовым кодом
+    const numericCode = qrData.trim()
+    
+    if (!/^\d{6}$/.test(numericCode)) {
       return {
         valid: false,
-        error: 'Неверный формат QR-кода'
+        error: 'Неверный формат кода. Введите 6-значный код'
       }
     }
     
-    const { orderId, token, type } = data
-    
-    // Проверка типа
-    if (type !== 'order') {
-      return {
-        valid: false,
-        error: 'Неверный тип QR-кода'
-      }
-    }
-    
-    // Получаем заказ из БД
+    // Получаем заказ по коду
     const order = await getQuery(`
       SELECT 
         o.*,
@@ -90,21 +75,13 @@ export async function validateOrderQRCode(qrData) {
       FROM orders o
       JOIN menu m ON o.menu_id = m.id
       JOIN users u ON o.user_id = u.id
-      WHERE o.id = ?
-    `, [orderId])
+      WHERE o.qr_token = ?
+    `, [numericCode])
     
     if (!order) {
       return {
         valid: false,
-        error: 'Заказ не найден'
-      }
-    }
-    
-    // Проверка токена
-    if (order.qr_token !== token) {
-      return {
-        valid: false,
-        error: 'Недействительный QR-код'
+        error: 'Код не найден или недействителен'
       }
     }
     
@@ -113,7 +90,7 @@ export async function validateOrderQRCode(qrData) {
     if (Date.now() > expiresAt.getTime()) {
       return {
         valid: false,
-        error: 'QR-код истек. Сгенерируйте новый'
+        error: 'Код истек. Сгенерируйте новый'
       }
     }
     
@@ -146,15 +123,15 @@ export async function validateOrderQRCode(qrData) {
       }
     }
   } catch (error) {
-    console.error('❌ Failed to validate QR code:', error)
+    console.error('❌ Failed to validate numeric code:', error)
     return {
       valid: false,
-      error: 'Ошибка валидации QR-кода'
+      error: 'Ошибка валидации кода'
     }
   }
 }
 
-// Выдача заказа по QR-коду
+// Выдача заказа по числовому коду
 export async function issueOrderByQRCode(orderId, chefId) {
   try {
     // Проверяем статус заказа
@@ -192,7 +169,7 @@ export async function issueOrderByQRCode(orderId, chefId) {
       WHERE id = ?
     `, [chefId, orderId])
     
-    // Инвалидируем QR-код (опционально)
+    // Инвалидируем код
     await runQuery(`
       UPDATE orders 
       SET qr_token = NULL
@@ -214,43 +191,45 @@ export async function issueOrderByQRCode(orderId, chefId) {
   }
 }
 
-// Генерация QR-кода для подписки
+// Генерация числового кода для подписки
 export async function generateSubscriptionQRCode(subscriptionId, userId) {
   try {
-    const token = crypto.randomBytes(32).toString('hex')
+    // Генерируем уникальный 6-значный код
+    let numericCode
+    let isUnique = false
+    
+    while (!isUnique) {
+      numericCode = Math.floor(100000 + Math.random() * 900000).toString()
+      
+      const existing = await getQuery(`
+        SELECT id FROM subscriptions 
+        WHERE qr_token = ? AND qr_expires_at > datetime('now')
+      `, [numericCode])
+      
+      if (!existing) {
+        isUnique = true
+      }
+    }
+    
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 дней
     
     await runQuery(`
       UPDATE subscriptions 
       SET qr_token = ?, qr_expires_at = ?
       WHERE id = ? AND user_id = ?
-    `, [token, expiresAt.toISOString(), subscriptionId, userId])
-    
-    const qrData = JSON.stringify({
-      subscriptionId,
-      token,
-      type: 'subscription',
-      timestamp: Date.now()
-    })
-    
-    const qrCodeDataURL = await QRCode.toDataURL(qrData, {
-      errorCorrectionLevel: 'H',
-      type: 'image/png',
-      width: 300,
-      margin: 2
-    })
+    `, [numericCode, expiresAt.toISOString(), subscriptionId, userId])
     
     return {
       success: true,
-      qrCode: qrCodeDataURL,
-      token,
+      qrCode: numericCode,
+      token: numericCode,
       expiresAt
     }
   } catch (error) {
-    console.error('❌ Failed to generate subscription QR code:', error)
+    console.error('❌ Failed to generate subscription numeric code:', error)
     return {
       success: false,
-      error: 'Не удалось сгенерировать QR-код'
+      error: 'Не удалось сгенерировать код'
     }
   }
 }

@@ -254,10 +254,10 @@ function StudentDashboard({ user }) {
         setQrCodeData(data)
         setSelectedOrderQR(orderId)
         setShowOrderQR(true)
-        showNotification('✅ QR-код сгенерирован!', 'success')
+        showNotification('✅ Код сгенерирован!', 'success')
       } else {
         const error = await res.json()
-        showNotification(error.error || 'Ошибка генерации QR-кода', 'error')
+        showNotification(error.error || 'Ошибка генерации кода', 'error')
       }
     } catch (error) {
       showNotification('Ошибка подключения к серверу', 'error')
@@ -1157,33 +1157,45 @@ function StudentDashboard({ user }) {
         </div>
       )}
 
-      {/* QR Code Modal */}
+      {/* Numeric Code Modal */}
       {showOrderQR && qrCodeData && (
         <div className="modal-overlay" onClick={() => setShowOrderQR(false)}>
           <div className="modal-content qr-modal" onClick={(e) => e.stopPropagation()}>
-            <h2>📱 QR-код для получения заказа</h2>
+            <h2>🔢 Код для получения заказа</h2>
             
             <div className="qr-code-display">
-              <div className="qr-code-container">
-                <img 
-                  src={qrCodeData.qrCode} 
-                  alt="QR код заказа" 
-                  style={{ 
-                    width: '300px', 
-                    height: '300px',
-                    border: '4px solid #2c3e50',
-                    borderRadius: '12px',
-                    padding: '10px',
-                    background: '#fff'
-                  }}
-                />
+              <div className="numeric-code-container" style={{
+                textAlign: 'center',
+                padding: '40px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: '20px',
+                marginBottom: '30px'
+              }}>
+                <div style={{
+                  fontSize: '72px',
+                  fontWeight: 'bold',
+                  color: '#fff',
+                  letterSpacing: '10px',
+                  fontFamily: 'monospace',
+                  textShadow: '0 4px 6px rgba(0,0,0,0.3)'
+                }}>
+                  {qrCodeData.qrCode}
+                </div>
+                <div style={{
+                  fontSize: '14px',
+                  color: 'rgba(255,255,255,0.9)',
+                  marginTop: '15px',
+                  fontWeight: '500'
+                }}>
+                  Покажите этот код повару
+                </div>
               </div>
               
               <div className="qr-instructions">
                 <h3>Как получить заказ:</h3>
                 <ol style={{ textAlign: 'left', paddingLeft: '20px' }}>
-                  <li>Покажите этот QR-код повару</li>
-                  <li>Повар отсканирует код</li>
+                  <li>Назовите этот 6-значный код повару</li>
+                  <li>Повар введет код в систему</li>
                   <li>Получите свой заказ</li>
                 </ol>
                 
@@ -1191,7 +1203,7 @@ function StudentDashboard({ user }) {
                   <p><strong>⏰ Срок действия:</strong></p>
                   <p>{new Date(qrCodeData.expiresAt).toLocaleString('ru-RU')}</p>
                   <p style={{ fontSize: '12px', color: '#7f8c8d', marginTop: '10px' }}>
-                    QR-код действителен 24 часа
+                    Код действителен 24 часа
                   </p>
                 </div>
               </div>
@@ -1303,7 +1315,7 @@ function StudentDashboard({ user }) {
                     <th>Цена</th>
                     <th>Статус</th>
                     <th>Дата</th>
-                    <th>QR-код</th>
+                    <th>Код</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1324,7 +1336,7 @@ function StudentDashboard({ user }) {
                             onClick={() => generateOrderQR(order.id)}
                             style={{ fontSize: '12px', padding: '5px 10px' }}
                           >
-                            📱 Показать QR
+                            🔢 Показать код
                           </button>
                         )}
                       </td>

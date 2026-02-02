@@ -1,11 +1,11 @@
-// API для работы с QR-кодами
+// API для работы с числовыми кодами заказов
 import express from 'express'
 import { generateOrderQRCode, validateOrderQRCode, issueOrderByQRCode, generateSubscriptionQRCode } from '../utils/qrCode.js'
 import { getQuery } from '../database.js'
 
 const router = express.Router()
 
-// Генерация QR-кода для заказа (студент)
+// Генерация числового кода для заказа (студент)
 router.post('/generate/order/:orderId', async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'student') {
@@ -26,7 +26,7 @@ router.post('/generate/order/:orderId', async (req, res) => {
     }
     
     if (order.status !== 'оплачен') {
-      return res.status(400).json({ error: 'Заказ должен быть оплачен для генерации QR-кода' })
+      return res.status(400).json({ error: 'Заказ должен быть оплачен для генерации кода' })
     }
     
     const result = await generateOrderQRCode(orderId, userId)
@@ -36,17 +36,17 @@ router.post('/generate/order/:orderId', async (req, res) => {
     }
     
     res.json({
-      qrCode: result.qrCode,
+      qrCode: result.qrCode, // Теперь это 6-значный код
       expiresAt: result.expiresAt,
-      message: 'QR-код успешно сгенерирован'
+      message: 'Код успешно сгенерирован'
     })
   } catch (error) {
-    console.error('Generate QR code error:', error)
-    res.status(500).json({ error: 'Ошибка генерации QR-кода' })
+    console.error('Generate code error:', error)
+    res.status(500).json({ error: 'Ошибка генерации кода' })
   }
 })
 
-// Валидация QR-кода (повар)
+// Валидация числового кода (повар)
 router.post('/validate', async (req, res) => {
   try {
     if (!req.session.user || !['chef', 'admin'].includes(req.session.user.role)) {
@@ -56,7 +56,7 @@ router.post('/validate', async (req, res) => {
     const { qrData } = req.body
     
     if (!qrData) {
-      return res.status(400).json({ error: 'QR-код не предоставлен' })
+      return res.status(400).json({ error: 'Код не предоставлен' })
     }
     
     const result = await validateOrderQRCode(qrData)
@@ -71,15 +71,15 @@ router.post('/validate', async (req, res) => {
     res.json({
       valid: true,
       order: result.order,
-      message: 'QR-код действителен'
+      message: 'Код действителен'
     })
   } catch (error) {
-    console.error('Validate QR code error:', error)
-    res.status(500).json({ error: 'Ошибка валидации QR-кода' })
+    console.error('Validate code error:', error)
+    res.status(500).json({ error: 'Ошибка валидации кода' })
   }
 })
 
-// Выдача заказа по QR-коду (повар)
+// Выдача заказа по числовому коду (повар)
 router.post('/issue/:orderId', async (req, res) => {
   try {
     if (!req.session.user || !['chef', 'admin'].includes(req.session.user.role)) {
@@ -105,7 +105,7 @@ router.post('/issue/:orderId', async (req, res) => {
   }
 })
 
-// Генерация QR-кода для подписки (студент)
+// Генерация числового кода для подписки (студент)
 router.post('/generate/subscription/:subscriptionId', async (req, res) => {
   try {
     if (!req.session.user || req.session.user.role !== 'student') {
@@ -138,11 +138,11 @@ router.post('/generate/subscription/:subscriptionId', async (req, res) => {
     res.json({
       qrCode: result.qrCode,
       expiresAt: result.expiresAt,
-      message: 'QR-код подписки успешно сгенерирован'
+      message: 'Код подписки успешно сгенерирован'
     })
   } catch (error) {
-    console.error('Generate subscription QR code error:', error)
-    res.status(500).json({ error: 'Ошибка генерации QR-кода' })
+    console.error('Generate subscription code error:', error)
+    res.status(500).json({ error: 'Ошибка генерации кода' })
   }
 })
 

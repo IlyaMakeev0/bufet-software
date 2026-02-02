@@ -39,6 +39,9 @@ function ChefDashboard({ user }) {
   const [showQRScanner, setShowQRScanner] = useState(false)
   const [qrScanResult, setQrScanResult] = useState(null)
   const [isScanning, setIsScanning] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [showNotifications, setShowNotifications] = useState(false)
 
   // Показать уведомление
   const showNotification = (message, type = 'success') => {
@@ -52,14 +55,15 @@ function ChefDashboard({ user }) {
 
   const loadData = async () => {
     try {
-      const [pendingRes, issuedRes, inventoryRes, purchaseRes, studentsRes, lowStockRes, menuRequestsRes] = await Promise.all([
+      const [pendingRes, issuedRes, inventoryRes, purchaseRes, studentsRes, lowStockRes, menuRequestsRes, notificationsRes] = await Promise.all([
         fetch('/api/chef/pending-meals'),
         fetch('/api/chef/issued-today'),
         fetch('/api/chef/inventory'),
         fetch('/api/chef/purchase-requests'),
         fetch('/api/chef/students'),
         fetch('/api/chef/inventory/low-stock'),
-        fetch('/api/chef/menu-requests')
+        fetch('/api/chef/menu-requests'),
+        fetch('/api/chef/notifications')
       ])
 
       if (pendingRes.ok) setPendingMeals(await pendingRes.json())
@@ -84,6 +88,11 @@ function ChefDashboard({ user }) {
       if (studentsRes.ok) setStudents(await studentsRes.json())
       if (lowStockRes.ok) setLowStock(await lowStockRes.json())
       if (menuRequestsRes.ok) setMenuRequests(await menuRequestsRes.json())
+      if (notificationsRes.ok) {
+        const notifs = await notificationsRes.json()
+        setNotifications(notifs)
+        setUnreadCount(notifs.filter(n => !n.is_read).length)
+      }
     } catch (error) {
       console.error('Failed to load data:', error)
     }
@@ -299,29 +308,29 @@ function ChefDashboard({ user }) {
     }
   }
 
-  const handleQRScan = async (qrData) => {
+  const handleQRScan = async (numericCode) => {
     if (isScanning) return
     setIsScanning(true)
 
     try {
-      // Валидация QR-кода
+      // Валидация числового кода
       const validateRes = await fetch('/api/qrcode/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qrData })
+        body: JSON.stringify({ qrData: numericCode })
       })
 
       if (validateRes.ok) {
         const data = await validateRes.json()
         setQrScanResult(data.order)
-        showNotification('✅ QR-код действителен!', 'success')
+        showNotification('✅ Код действителен!', 'success')
       } else {
         const error = await validateRes.json()
-        showNotification(error.error || 'Недействительный QR-код', 'error')
+        showNotification(error.error || 'Недействительный код', 'error')
         setQrScanResult(null)
       }
     } catch (error) {
-      showNotification('Ошибка проверки QR-кода', 'error')
+      showNotification('Ошибка проверки кода', 'error')
       setQrScanResult(null)
     } finally {
       setIsScanning(false)
@@ -352,9 +361,39 @@ function ChefDashboard({ user }) {
 
   const handleManualQRInput = (e) => {
     e.preventDefault()
-    const input = e.target.elements.qrInput.value
+    const input = e.target.elements.qrInput.value.trim()
     if (input) {
       handleQRScan(input)
+      e.target.reset()
+    }
+  }
+
+  const markNotificationAsRead = async (notificationId) => {
+    try {
+      const res = await fetch(`/api/chef/notifications/${notificationId}/read`, {
+        method: 'PUT'
+      })
+
+      if (res.ok) {
+        loadData()
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error)
+    }
+  }
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      const res = await fetch('/api/chef/notifications/read-all', {
+        method: 'PUT'
+      })
+
+      if (res.ok) {
+        showNotification('Все уведомления отмечены как прочитанные', 'success')
+        loadData()
+      }
+    } catch (error) {
+      showNotification('Ошибка обновления уведомлений', 'error')
     }
   }
 
@@ -407,15 +446,28 @@ function ChefDashboard({ user }) {
         </div>
 
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-          <div className="stat-icon">QR</div>
-          <div className="stat-label" style={{ color: '#fff', marginTop: '10px' }}>Сканер QR-кодов</div>
+          <div className="stat-icon">CODE</div>
+          <div className="stat-label" style={{ color: '#fff', marginTop: '10px' }}>Ввод кода заказа</div>
           <button 
             className="btn btn-primary"
             onClick={() => setShowQRScanner(true)}
             style={{ marginTop: '10px', fontSize: '14px', background: '#fff', color: '#667eea' }}
           >
-            📱 Открыть сканер
+            🔢 Ввести код
           </button>
+        </div>
+
+        <div className={`stat-card ${unreadCount > 0 ? 'notification-active' : ''}`} style={{ 
+          background: unreadCount > 0 ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' : 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+          cursor: 'pointer'
+        }}
+        onClick={() => setShowNotifications(true)}
+        >
+          <div className="stat-icon">BELL</div>
+          <div className="stat-value">{unreadCount}</div>
+          <div className="stat-label" style={{ color: unreadCount > 0 ? '#fff' : '#333' }}>
+            {unreadCount > 0 ? 'Новые уведомления' : 'Уведомления'}
+          </div>
         </div>
       </div>
 
@@ -1374,62 +1426,68 @@ function ChefDashboard({ user }) {
         </div>
       )}
 
-      {/* QR Scanner Modal */}
+      {/* Code Input Modal */}
       {showQRScanner && (
         <div className="modal-overlay" onClick={() => setShowQRScanner(false)}>
           <div className="modal-content qr-scanner-modal" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
-            <h2>📱 Сканер QR-кодов</h2>
+            <h2>🔢 Ввод кода заказа</h2>
             
             <div className="qr-scanner-content">
               <div style={{ 
                 background: '#f8f9fa', 
-                padding: '20px', 
+                padding: '30px', 
                 borderRadius: '12px',
                 marginBottom: '20px',
                 textAlign: 'center'
               }}>
                 <div style={{ 
-                  width: '300px', 
-                  height: '300px', 
-                  margin: '0 auto',
-                  background: '#fff',
-                  border: '4px dashed #3498db',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '48px'
+                  fontSize: '64px',
+                  marginBottom: '20px'
                 }}>
-                  📷
+                  🔢
                 </div>
-                <p style={{ marginTop: '15px', color: '#7f8c8d' }}>
-                  Наведите камеру на QR-код ученика
+                <p style={{ color: '#7f8c8d', fontSize: '16px' }}>
+                  Введите 6-значный код, который назвал ученик
                 </p>
               </div>
 
               <div style={{ 
                 background: '#e3f2fd', 
-                padding: '15px', 
+                padding: '20px', 
                 borderRadius: '8px',
                 marginBottom: '20px'
               }}>
-                <h4 style={{ margin: '0 0 10px 0', color: '#1976d2' }}>Ручной ввод</h4>
+                <h4 style={{ margin: '0 0 15px 0', color: '#1976d2' }}>Введите код</h4>
                 <form onSubmit={handleManualQRInput}>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <input
                       type="text"
                       name="qrInput"
-                      placeholder="Вставьте данные QR-кода"
-                      style={{ flex: 1 }}
+                      placeholder="Например: 123456"
+                      maxLength="6"
+                      pattern="\d{6}"
+                      style={{ 
+                        flex: 1,
+                        fontSize: '24px',
+                        textAlign: 'center',
+                        letterSpacing: '5px',
+                        fontFamily: 'monospace'
+                      }}
+                      autoFocus
+                      required
                     />
                     <button 
                       type="submit" 
                       className="btn btn-primary"
                       disabled={isScanning}
+                      style={{ minWidth: '120px' }}
                     >
                       {isScanning ? 'Проверка...' : 'Проверить'}
                     </button>
                   </div>
+                  <small style={{ display: 'block', marginTop: '10px', color: '#666' }}>
+                    Введите 6 цифр кода заказа
+                  </small>
                 </form>
               </div>
 
@@ -1487,6 +1545,82 @@ function ChefDashboard({ user }) {
                   setShowQRScanner(false)
                   setQrScanResult(null)
                 }}
+              >
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Modal */}
+      {showNotifications && (
+        <div className="modal-overlay" onClick={() => setShowNotifications(false)}>
+          <div className="modal-content" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2>🔔 Уведомления</h2>
+              {unreadCount > 0 && (
+                <button 
+                  className="btn btn-sm btn-secondary"
+                  onClick={markAllNotificationsAsRead}
+                >
+                  Отметить все как прочитанные
+                </button>
+              )}
+            </div>
+
+            {notifications.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#7f8c8d', padding: '40px 0' }}>
+                У вас пока нет уведомлений
+              </p>
+            ) : (
+              <div style={{ maxHeight: '500px', overflow: 'auto' }}>
+                {notifications.map(notif => (
+                  <div 
+                    key={notif.id} 
+                    style={{
+                      background: notif.is_read ? '#f8f9fa' : '#e3f2fd',
+                      border: `2px solid ${notif.is_read ? '#e9ecef' : '#2196f3'}`,
+                      borderRadius: '12px',
+                      padding: '15px',
+                      marginBottom: '15px',
+                      cursor: notif.is_read ? 'default' : 'pointer'
+                    }}
+                    onClick={() => !notif.is_read && markNotificationAsRead(notif.id)}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '10px' }}>
+                      <h4 style={{ margin: 0, color: notif.is_read ? '#495057' : '#1976d2' }}>
+                        {notif.title}
+                      </h4>
+                      {!notif.is_read && (
+                        <span style={{
+                          background: '#2196f3',
+                          color: '#fff',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '11px',
+                          fontWeight: 'bold'
+                        }}>
+                          НОВОЕ
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ margin: '0 0 10px 0', color: '#495057' }}>
+                      {notif.message}
+                    </p>
+                    <small style={{ color: '#6c757d' }}>
+                      {new Date(notif.created_at).toLocaleString('ru-RU')}
+                    </small>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="modal-actions">
+              <button 
+                type="button" 
+                className="btn btn-primary"
+                onClick={() => setShowNotifications(false)}
               >
                 Закрыть
               </button>

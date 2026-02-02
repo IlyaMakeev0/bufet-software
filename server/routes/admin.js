@@ -169,11 +169,38 @@ router.put('/purchase-requests/:id', async (req, res) => {
       return res.status(400).json({ error: 'Статус обязателен' })
     }
 
+    // Get purchase request details
+    const purchaseRequest = await getQuery(`
+      SELECT * FROM purchase_requests WHERE id = ?
+    `, [id])
+
+    if (!purchaseRequest) {
+      return res.status(404).json({ error: 'Заявка не найдена' })
+    }
+
+    // Update status
     await runQuery(`
       UPDATE purchase_requests 
       SET status = ?
       WHERE id = ?
     `, [status, id])
+
+    // If approved, create notification for chef
+    if (status === 'одобрена') {
+      const notificationId = uuidv4()
+      await runQuery(`
+        INSERT INTO notifications (id, user_id, type, title, message, created_at)
+        VALUES (?, ?, ?, ?, ?, datetime('now'))
+      `, [
+        notificationId,
+        purchaseRequest.created_by,
+        'purchase_approved',
+        'Заявка на закупку одобрена',
+        `Ваша заявка на закупку "${purchaseRequest.item}" (${purchaseRequest.quantity} ${purchaseRequest.unit}) одобрена. Пожалуйста, пополните склад.`
+      ])
+      
+      console.log(`✅ Notification created for chef ${purchaseRequest.created_by} about approved purchase request`)
+    }
 
     res.json({ message: 'Статус заявки обновлен' })
   } catch (error) {

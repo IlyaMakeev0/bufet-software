@@ -532,19 +532,30 @@ router.get('/menu-requests', async (req, res) => {
       ORDER BY mr.created_at DESC
     `, [req.session.user.id])
 
-    const formattedRequests = requests.map(req => ({
-      id: req.id,
-      name: req.name,
-      description: req.description,
-      price: parseFloat(req.price),
-      mealType: req.meal_type,
-      ingredients: req.ingredients,
-      status: req.status,
-      adminComment: req.admin_comment,
-      createdByName: req.created_by_name,
-      createdAt: req.created_at,
-      reviewedAt: req.reviewed_at
-    }))
+    const formattedRequests = requests.map(req => {
+      // Parse ingredients JSON
+      let ingredients = []
+      try {
+        ingredients = typeof req.ingredients === 'string' ? JSON.parse(req.ingredients) : req.ingredients
+      } catch (e) {
+        console.error('Failed to parse ingredients:', e)
+        ingredients = []
+      }
+      
+      return {
+        id: req.id,
+        name: req.name,
+        description: req.description,
+        price: parseFloat(req.price),
+        mealType: req.meal_type,
+        ingredients: ingredients,
+        status: req.status,
+        adminComment: req.admin_comment,
+        createdByName: req.created_by_name,
+        createdAt: req.created_at,
+        reviewedAt: req.reviewed_at
+      }
+    })
 
     res.json(formattedRequests)
   } catch (error) {
@@ -556,26 +567,102 @@ router.get('/menu-requests', async (req, res) => {
 // Create menu request
 router.post('/menu-requests', async (req, res) => {
   try {
+    console.log('=== Create Menu Request ===')
+    console.log('User:', req.session.user)
+    console.log('Body:', req.body)
+
     if (!req.session.user || req.session.user.role !== 'chef') {
+      console.log('Unauthorized: not a chef')
       return res.status(401).json({ error: 'Unauthorized' })
     }
 
     const { name, description, price, mealType, ingredients } = req.body
 
     if (!name || !price || !mealType || !ingredients || ingredients.length === 0) {
+      console.log('Missing fields')
       return res.status(400).json({ error: 'Все поля обязательны' })
     }
 
+    console.log('Creating menu request...')
     const id = uuidv4()
+    
+    // Convert ingredients array to JSON string
+    const ingredientsJson = JSON.stringify(ingredients)
+    
     await runQuery(`
       INSERT INTO menu_requests (id, name, description, price, meal_type, ingredients, created_by)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `, [id, name, description, parseFloat(price), mealType, JSON.stringify(ingredients), req.session.user.id])
+    `, [id, name, description || '', parseFloat(price), mealType, ingredientsJson, req.session.user.id])
 
+    console.log('Menu request created:', id)
     res.json({ message: 'Заявка на добавление блюда создана', id })
   } catch (error) {
     console.error('Create menu request error:', error)
-    res.status(500).json({ error: 'Ошибка создания заявки' })
+    console.error('Error stack:', error.stack)
+    res.status(500).json({ error: 'Ошибка создания заявки: ' + error.message })
+  }
+})
+
+// Get notifications for chef
+router.get('/notifications', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'chef') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const notifications = await allQuery(`
+      SELECT * FROM notifications
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT 50
+    `, [req.session.user.id])
+
+    res.json(notifications)
+  } catch (error) {
+    console.error('Get notifications error:', error)
+    res.status(500).json({ error: 'Ошибка получения уведомлений' })
+  }
+})
+
+// Mark notification as read
+router.put('/notifications/:id/read', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'chef') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const { id } = req.params
+
+    await runQuery(`
+      UPDATE notifications 
+      SET is_read = 1
+      WHERE id = ? AND user_id = ?
+    `, [id, req.session.user.id])
+
+    res.json({ message: 'Уведомление отмечено как прочитанное' })
+  } catch (error) {
+    console.error('Mark notification as read error:', error)
+    res.status(500).json({ error: 'Ошибка обновления уведомления' })
+  }
+})
+
+// Mark all notifications as read
+router.put('/notifications/read-all', async (req, res) => {
+  try {
+    if (!req.session.user || req.session.user.role !== 'chef') {
+      return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    await runQuery(`
+      UPDATE notifications 
+      SET is_read = 1
+      WHERE user_id = ?
+    `, [req.session.user.id])
+
+    res.json({ message: 'Все уведомления отмечены как прочитанные' })
+  } catch (error) {
+    console.error('Mark all notifications as read error:', error)
+    res.status(500).json({ error: 'Ошибка обновления уведомлений' })
   }
 })
 
