@@ -1,0 +1,78 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PATH: ${{ secrets.SERVER_PATH }}
+        run: |
+          ssh $SERVER_USER@$SERVER_HOST << 'ENDSSH'
+            cd ${{ secrets.SERVER_PATH }}
+            
+            echo "📦 Pulling latest changes..."
+            git pull origin main || git pull origin master
+            
+            echo "🛑 Stopping containers..."
+            docker-compose -f docker-compose.production.yml down
+            
+            echo "🔨 Building containers..."
+            docker-compose -f docker-compose.production.yml build --no-cache
+            
+            echo "🚀 Starting containers..."
+            docker-compose -f docker-compose.production.yml up -d
+            
+            echo "⏳ Waiting for services to start..."
+            sleep 20
+            
+            echo "✅ Checking container status..."
+            docker-compose -f docker-compose.production.yml ps
+            
+            echo "📋 Showing backend logs..."
+            docker-compose -f docker-compose.production.yml logs --tail=50 backend
+            
+            echo "🎉 Deployment completed!"
+          ENDSSH
+
+      - name: Health check
+        run: |
+          echo "🏥 Performing health check..."
+          sleep 10
+          curl -f https://autogreatfood.ru/health || echo "⚠️ Health check failed"
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ Deployment successful!"
+          echo "🌐 Site: https://autogreatfood.ru"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Check the logs above for details"

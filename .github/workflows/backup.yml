@@ -1,0 +1,56 @@
+name: Database Backup
+
+on:
+  schedule:
+    # Запускать каждый день в 3:00 UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  backup:
+    name: Backup PostgreSQL Database
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create database backup
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PATH: ${{ secrets.SERVER_PATH }}
+        run: |
+          ssh $SERVER_USER@$SERVER_HOST << 'ENDSSH'
+            cd ${{ secrets.SERVER_PATH }}
+            
+            echo "💾 Creating database backup..."
+            BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
+            BACKUP_FILE="backup_${BACKUP_DATE}.sql"
+            
+            docker exec school-canteen-db pg_dump -U canteen_user school_canteen > $BACKUP_FILE
+            
+            echo "📦 Compressing backup..."
+            gzip $BACKUP_FILE
+            
+            echo "🗂️ Managing old backups (keeping last 7 days)..."
+            find . -name "backup_*.sql.gz" -mtime +7 -delete
+            
+            echo "✅ Backup completed: ${BACKUP_FILE}.gz"
+            ls -lh backup_*.sql.gz | tail -5
+          ENDSSH
+
+      - name: Notify on success
+        if: success()
+        run: echo "✅ Database backup completed successfully"
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "❌ Database backup failed"

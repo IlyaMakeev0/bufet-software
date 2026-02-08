@@ -1,0 +1,121 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║              🚀 ЗАПУСК ПРОЕКТА                               ║
+║              Пошаговая инструкция                             ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+═══════════════════════════════════════════════════════════════
+  ШАГ 1: ОСТАНОВИТЬ ВСЕ (если что-то запущено)
+═══════════════════════════════════════════════════════════════
+
+docker-compose -f docker-compose.production.yml down
+
+
+═══════════════════════════════════════════════════════════════
+  ШАГ 2: ПРИМЕНИТЬ МИГРАЦИЮ БД
+═══════════════════════════════════════════════════════════════
+
+1. Запустить PostgreSQL:
+   docker-compose -f docker-compose.production.yml up -d postgres
+
+2. Подождать 15 секунд:
+   timeout /t 15 /nobreak
+
+3. Применить миграцию:
+   docker exec -i school-canteen-db psql -U canteen_user -d school_canteen < add-menu-requests-and-notifications.sql
+
+
+═══════════════════════════════════════════════════════════════
+  ШАГ 3: ЗАПУСТИТЬ ВСЕ КОНТЕЙНЕРЫ
+═══════════════════════════════════════════════════════════════
+
+docker-compose -f docker-compose.production.yml up -d --build
+
+
+═══════════════════════════════════════════════════════════════
+  ШАГ 4: ПРОВЕРИТЬ СТАТУС
+═══════════════════════════════════════════════════════════════
+
+docker-compose -f docker-compose.production.yml ps
+
+Должно показать:
+  school-canteen-backend   Up
+  school-canteen-db        Up
+
+
+═══════════════════════════════════════════════════════════════
+  ШАГ 5: ПОСМОТРЕТЬ ЛОГИ
+═══════════════════════════════════════════════════════════════
+
+docker-compose -f docker-compose.production.yml logs -f backend
+
+Должно показать:
+  ✅ PostgreSQL database adapter
+  ✅ Database already initialized
+  🚀 HTTPS Server running on: https://localhost:443
+
+Нажмите Ctrl+C для выхода из логов
+
+
+═══════════════════════════════════════════════════════════════
+  ШАГ 6: ОТКРЫТЬ САЙТ
+═══════════════════════════════════════════════════════════════
+
+Откройте в браузере:
+  https://autogreatfood.ru
+
+или
+
+  https://localhost
+
+
+═══════════════════════════════════════════════════════════════
+  ✅ ГОТОВО!
+═══════════════════════════════════════════════════════════════
+
+Если сайт открылся - все работает! 🎉
+
+
+═══════════════════════════════════════════════════════════════
+  ❌ ЕСЛИ НЕ РАБОТАЕТ
+═══════════════════════════════════════════════════════════════
+
+1. Проверьте логи backend:
+   docker-compose -f docker-compose.production.yml logs backend
+
+2. Проверьте логи PostgreSQL:
+   docker-compose -f docker-compose.production.yml logs postgres
+
+3. Полная перезагрузка:
+   docker-compose -f docker-compose.production.yml down -v
+   docker-compose -f docker-compose.production.yml up -d --build
+
+4. Пришлите мне логи - я помогу разобраться!
+
+
+═══════════════════════════════════════════════════════════════
+  🔧 ПОЛЕЗНЫЕ КОМАНДЫ
+═══════════════════════════════════════════════════════════════
+
+Остановить:
+  docker-compose -f docker-compose.production.yml down
+
+Запустить:
+  docker-compose -f docker-compose.production.yml up -d
+
+Перезапустить:
+  docker-compose -f docker-compose.production.yml restart
+
+Статус:
+  docker-compose -f docker-compose.production.yml ps
+
+Логи:
+  docker-compose -f docker-compose.production.yml logs -f backend
+
+
+═══════════════════════════════════════════════════════════════
+
+✨ Проект должен быть запущен!
+🌐 Сайт: https://autogreatfood.ru

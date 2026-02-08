@@ -1,0 +1,155 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║              📋 ШПАРГАЛКА ПО CI/CD                           ║
+║              Быстрый справочник команд                        ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+═══════════════════════════════════════════════════════════════
+  🔑 НАСТРОЙКА SSH (один раз)
+═══════════════════════════════════════════════════════════════
+
+1. Создать ключ:
+   ssh-keygen -t rsa -b 4096 -C "github-actions"
+   (нажать Enter 3 раза)
+
+2. Скопировать на сервер:
+   ssh-copy-id root@autogreatfood.ru
+
+3. Проверить:
+   ssh root@autogreatfood.ru
+   (должно подключиться без пароля)
+
+4. Получить приватный ключ для GitHub:
+   cat ~/.ssh/id_rsa
+   (скопировать весь вывод)
+
+
+═══════════════════════════════════════════════════════════════
+  🔐 GITHUB SECRETS (один раз)
+═══════════════════════════════════════════════════════════════
+
+GitHub → Settings → Secrets → Actions → New secret
+
+Добавить 4 секрета:
+
+┌─────────────────────────────────────────────────────────────┐
+│ SSH_PRIVATE_KEY    = содержимое ~/.ssh/id_rsa              │
+│ SERVER_HOST        = autogreatfood.ru                       │
+│ SERVER_USER        = root                                   │
+│ SERVER_PATH        = /root/bufet-software                   │
+└─────────────────────────────────────────────────────────────┘
+
+
+═══════════════════════════════════════════════════════════════
+  🖥️  НАСТРОЙКА СЕРВЕРА (один раз)
+═══════════════════════════════════════════════════════════════
+
+ssh root@autogreatfood.ru
+cd /root/bufet-software
+git init
+git remote add origin https://github.com/USER/REPO.git
+git branch -M main
+exit
+
+
+═══════════════════════════════════════════════════════════════
+  🚀 ДЕПЛОЙ (каждый раз)
+═══════════════════════════════════════════════════════════════
+
+git add .
+git commit -m "Your message"
+git push origin main
+
+→ GitHub Actions автоматически задеплоит!
+
+
+═══════════════════════════════════════════════════════════════
+  📊 ПРОВЕРКА СТАТУСА
+═══════════════════════════════════════════════════════════════
+
+GitHub:
+  GitHub → Actions → Выбрать workflow
+
+Сервер:
+  ssh root@autogreatfood.ru
+  cd /root/bufet-software
+  docker-compose -f docker-compose.production.yml ps
+  docker-compose -f docker-compose.production.yml logs -f backend
+
+
+═══════════════════════════════════════════════════════════════
+  🔧 ПОЛЕЗНЫЕ КОМАНДЫ
+═══════════════════════════════════════════════════════════════
+
+Локально:
+  git status                    # Статус изменений
+  git log --oneline            # История коммитов
+  test-before-push.bat         # Проверка перед push
+
+На сервере:
+  # Статус
+  docker-compose -f docker-compose.production.yml ps
+  
+  # Логи
+  docker-compose -f docker-compose.production.yml logs -f backend
+  
+  # Перезапуск
+  docker-compose -f docker-compose.production.yml restart backend
+  
+  # Полная перезагрузка
+  docker-compose -f docker-compose.production.yml down
+  docker-compose -f docker-compose.production.yml up -d --build
+
+
+═══════════════════════════════════════════════════════════════
+  🆘 БЫСТРОЕ ИСПРАВЛЕНИЕ ПРОБЛЕМ
+═══════════════════════════════════════════════════════════════
+
+Ошибка SSH:
+  ssh-copy-id root@autogreatfood.ru
+
+Ошибка Git:
+  ssh root@autogreatfood.ru
+  cd /root/bufet-software
+  git reset --hard origin/main
+
+Контейнеры не работают:
+  ssh root@autogreatfood.ru
+  cd /root/bufet-software
+  docker-compose -f docker-compose.production.yml down -v
+  docker-compose -f docker-compose.production.yml up -d --build
+
+Сайт не открывается:
+  ssh root@autogreatfood.ru
+  cd /root/bufet-software
+  docker-compose -f docker-compose.production.yml logs backend
+
+
+═══════════════════════════════════════════════════════════════
+  📖 ДОКУМЕНТАЦИЯ
+═══════════════════════════════════════════════════════════════
+
+ПОЛНАЯ_ИНСТРУКЦИЯ_CICD.md  - Подробная инструкция
+НАСТРОЙКА_CICD.txt         - Быстрая настройка
+CICD_SETUP.md              - Документация на английском
+ГОТОВО_CICD.txt            - Итоговая инструкция
+
+
+═══════════════════════════════════════════════════════════════
+  ✅ CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+□ SSH ключ создан
+□ SSH ключ на сервере
+□ 4 секрета в GitHub
+□ Git настроен на сервере
+□ Первый push выполнен
+□ Workflow запустился
+□ Сайт работает
+
+
+═══════════════════════════════════════════════════════════════
+
+✨ Полная документация: ПОЛНАЯ_ИНСТРУКЦИЯ_CICD.md

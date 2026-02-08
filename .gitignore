@@ -1,41 +1,60 @@
 # Dependencies
 node_modules/
-
-# Build output
-dist/
-build/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
+package-lock.json
 
 # Environment variables
 .env
 .env.local
+.env.production.local
+
+# Database
+*.db
+*.db-journal
+*.sql
+!init-db.sql
+!add-*.sql
 
 # Logs
 logs/
 *.log
 npm-debug.log*
 
-# OS files
-.DS_Store
-Thumbs.db
+# Build output
+dist/
+build/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# Python (old file)
-__pycache__/
-*.py[cod]
-*$py.class
+# OS
+.DS_Store
+Thumbs.db
 
 # Docker
-.env.docker.local
-docker-compose.override.yml
-postgres_data/
-app_data/
+.dockerignore
+
+# Backups
+backup_*.sql.gz
+backup_*.sql
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# SSL certificates (keep only in cert folder)
+*.key
+*.pem
+!cert/*.crt
+!cert/*.key
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Misc
+.env.backup

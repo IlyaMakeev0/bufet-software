@@ -1,0 +1,13 @@
+docker-compose -f docker-compose.production.yml down
+
+docker-compose -f docker-compose.production.yml up -d postgres
+
+timeout /t 15 /nobreak
+
+docker exec -i school-canteen-db psql -U canteen_user -d school_canteen < add-menu-requests-and-notifications.sql
+
+docker-compose -f docker-compose.production.yml up -d --build
+
+docker-compose -f docker-compose.production.yml ps
+
+docker-compose -f docker-compose.production.yml logs -f backend
