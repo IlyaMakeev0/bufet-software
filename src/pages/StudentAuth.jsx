@@ -164,6 +164,17 @@ function StudentRegister({ setUser }) {
     e.preventDefault()
     setError('')
 
+    // Validate all fields
+    if (!formData.email || !formData.password || !formData.firstName || !formData.lastName || !formData.className) {
+      setError('Заполните все обязательные поля')
+      return
+    }
+
+    if (!formData.email.includes('@') || !formData.email.includes('.')) {
+      setError('Введите корректный email адрес')
+      return
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Пароли не совпадают')
       return
@@ -181,12 +192,23 @@ function StudentRegister({ setUser }) {
       return
     }
 
+    if (!formData.verificationCode) {
+      setError('Введите код подтверждения')
+      return
+    }
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          className: formData.className,
+          verificationCode: formData.verificationCode,
+          phone: null, // Optional field
           role: 'student'
         })
       })

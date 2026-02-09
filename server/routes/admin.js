@@ -231,19 +231,37 @@ router.get('/menu-requests', async (req, res) => {
         mr.created_at DESC
     `)
 
-    const formattedRequests = requests.map(req => ({
-      id: req.id,
-      name: req.name,
-      description: req.description,
-      price: parseFloat(req.price),
-      mealType: req.meal_type,
-      ingredients: req.ingredients,
-      status: req.status,
-      adminComment: req.admin_comment,
-      createdByName: req.created_by_name,
-      createdAt: req.created_at,
-      reviewedAt: req.reviewed_at
-    }))
+    const formattedRequests = requests.map(req => {
+      // Parse ingredients if it's a string
+      let ingredients = req.ingredients
+      if (typeof ingredients === 'string') {
+        try {
+          ingredients = JSON.parse(ingredients)
+        } catch (e) {
+          console.error('Failed to parse ingredients:', e)
+          ingredients = []
+        }
+      }
+      
+      // Ensure ingredients is always an array
+      if (!Array.isArray(ingredients)) {
+        ingredients = []
+      }
+
+      return {
+        id: req.id,
+        name: req.name,
+        description: req.description,
+        price: parseFloat(req.price),
+        mealType: req.meal_type,
+        ingredients: ingredients,
+        status: req.status,
+        adminComment: req.admin_comment,
+        createdByName: req.created_by_name,
+        createdAt: req.created_at,
+        reviewedAt: req.reviewed_at
+      }
+    })
 
     res.json(formattedRequests)
   } catch (error) {

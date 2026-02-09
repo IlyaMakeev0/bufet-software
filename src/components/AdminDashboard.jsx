@@ -619,9 +619,13 @@ function AdminDashboard({ user }) {
                     <div style={{ marginTop: '15px' }}>
                       <strong>Состав:</strong>
                       <ul style={{ marginTop: '5px', paddingLeft: '20px' }}>
-                        {request.ingredients.map((ing, idx) => (
-                          <li key={idx}>{ing.name}: {ing.quantity} {ing.unit}</li>
-                        ))}
+                        {Array.isArray(request.ingredients) && request.ingredients.length > 0 ? (
+                          request.ingredients.map((ing, idx) => (
+                            <li key={idx}>{ing.name}: {ing.quantity} {ing.unit}</li>
+                          ))
+                        ) : (
+                          <li>Нет данных о составе</li>
+                        )}
                       </ul>
                     </div>
 

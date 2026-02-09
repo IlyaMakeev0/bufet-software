@@ -154,7 +154,14 @@ function AdminRegister({ setUser }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          position: formData.position,
+          secretCode: formData.secretCode,
+          phone: null, // Optional field
+          className: null, // Not needed for admin
           role: 'admin'
         })
       })
@@ -169,6 +176,7 @@ function AdminRegister({ setUser }) {
       }
     } catch (err) {
       setError('Ошибка подключения к серверу')
+      console.error('Registration error:', err)
     }
   }
 
