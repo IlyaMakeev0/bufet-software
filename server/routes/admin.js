@@ -537,49 +537,64 @@ router.delete('/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'Пользователь не найден' })
     }
 
+    console.log(`🗑️ Starting deletion of user ${user.email} (${user.role})`)
+
     // Delete related data first (cascade delete)
-    try {
-      // Delete orders
-      await runQuery('DELETE FROM orders WHERE user_id = ?', [id])
-      
-      // Delete issued meals
-      await runQuery('DELETE FROM issued_meals WHERE user_id = ?', [id])
-      
-      // Delete subscriptions
-      await runQuery('DELETE FROM subscriptions WHERE user_id = ?', [id])
-      
-      // Delete notifications
-      await runQuery('DELETE FROM notifications WHERE user_id = ?', [id])
-      
-      // Delete purchase requests (if chef)
-      await runQuery('DELETE FROM purchase_requests WHERE created_by = ?', [id])
-      
-      // Delete menu requests (if chef)
-      await runQuery('DELETE FROM menu_requests WHERE created_by = ?', [id])
-      
-      // Delete password reset tokens
-      await runQuery('DELETE FROM password_reset_tokens WHERE user_id = ?', [id])
-      
-      // Delete reviews
-      await runQuery('DELETE FROM reviews WHERE user_id = ?', [id])
-      
-      // Delete transaction logs
-      await runQuery('DELETE FROM transaction_logs WHERE user_id = ?', [id])
-      
-      console.log(`🗑️ Deleted all related data for user ${user.email}`)
-    } catch (relatedError) {
-      console.error('Error deleting related data:', relatedError)
-      // Continue with user deletion even if some related data fails
+    const tablesToClean = [
+      { name: 'orders', column: 'user_id' },
+      { name: 'issued_meals', column: 'user_id' },
+      { name: 'subscriptions', column: 'user_id' },
+      { name: 'notifications', column: 'user_id' },
+      { name: 'purchase_requests', column: 'created_by' },
+      { name: 'menu_requests', column: 'created_by' },
+      { name: 'password_reset_tokens', column: 'user_id' },
+      { name: 'reviews', column: 'user_id' },
+      { name: 'transaction_logs', column: 'user_id' },
+      { name: 'payment_security_logs', column: 'user_id' },
+      { name: 'login_attempts', column: 'user_id' },
+      { name: 'two_factor_codes', column: 'user_id' },
+      { name: 'audit_logs', column: 'user_id' },
+      { name: 'inventory_logs', column: 'created_by' }
+    ]
+
+    for (const table of tablesToClean) {
+      try {
+        const result = await runQuery(`DELETE FROM ${table.name} WHERE ${table.column} = ?`, [id])
+        console.log(`  ✓ Deleted from ${table.name}`)
+      } catch (tableError) {
+        // Table might not exist or have different structure
+        console.log(`  ⚠ Could not delete from ${table.name}:`, tableError.message)
+      }
+    }
+
+    // Also clean up reviewed_by references (SET NULL)
+    const reviewedByTables = [
+      { name: 'menu_requests', column: 'reviewed_by' },
+      { name: 'inventory_logs', column: 'created_by' }
+    ]
+
+    for (const table of reviewedByTables) {
+      try {
+        await runQuery(`UPDATE ${table.name} SET ${table.column} = NULL WHERE ${table.column} = ?`, [id])
+        console.log(`  ✓ Cleaned ${table.column} in ${table.name}`)
+      } catch (tableError) {
+        console.log(`  ⚠ Could not clean ${table.name}:`, tableError.message)
+      }
     }
 
     // Delete user
-    await runQuery('DELETE FROM users WHERE id = ?', [id])
+    try {
+      await runQuery('DELETE FROM users WHERE id = ?', [id])
+      console.log(`✅ Admin ${req.session.user.email} deleted user ${user.email} (${user.role})`)
+      res.json({ message: 'Пользователь удален' })
+    } catch (deleteError) {
+      console.error('❌ Error deleting user:', deleteError)
+      throw deleteError
+    }
 
-    console.log(`✅ Admin ${req.session.user.email} deleted user ${user.email} (${user.role})`)
-    res.json({ message: 'Пользователь удален' })
   } catch (error) {
     console.error('Delete user error:', error)
-    console.error('Error details:', error.message)
+    console.error('Error stack:', error.stack)
     res.status(500).json({ 
       error: 'Ошибка удаления пользователя',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
