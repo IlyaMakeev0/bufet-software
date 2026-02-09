@@ -289,10 +289,25 @@ router.post('/menu-requests/:id/approve', async (req, res) => {
       return res.status(404).json({ error: 'Заявка не найдена' })
     }
 
+    // Parse ingredients if it's a string
+    let ingredients = request.ingredients
+    if (typeof ingredients === 'string') {
+      try {
+        ingredients = JSON.parse(ingredients)
+      } catch (e) {
+        console.error('Failed to parse ingredients:', e)
+        return res.status(400).json({ error: 'Неверный формат ингредиентов' })
+      }
+    }
+
+    // Ensure ingredients is an array
+    if (!Array.isArray(ingredients)) {
+      return res.status(400).json({ error: 'Ингредиенты должны быть массивом' })
+    }
+
     // Create menu items for date range
     const start = new Date(startDate)
     const end = new Date(endDate)
-    const ingredients = request.ingredients // JSONB already parsed by PostgreSQL
 
     for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
       const dateStr = date.toISOString().split('T')[0]
@@ -323,9 +338,11 @@ router.post('/menu-requests/:id/approve', async (req, res) => {
       WHERE id = ?
     `, [adminComment, req.session.user.id, id])
 
+    console.log(`✅ Admin ${req.session.user.email} approved menu request: ${request.name}`)
     res.json({ message: 'Заявка одобрена, блюдо добавлено в меню' })
   } catch (error) {
     console.error('Approve menu request error:', error)
+    console.error('Error details:', error.message)
     res.status(500).json({ error: 'Ошибка одобрения заявки' })
   }
 })
