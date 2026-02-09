@@ -537,6 +537,41 @@ router.delete('/users/:id', async (req, res) => {
       return res.status(404).json({ error: 'Пользователь не найден' })
     }
 
+    // Delete related data first (cascade delete)
+    try {
+      // Delete orders
+      await runQuery('DELETE FROM orders WHERE user_id = ?', [id])
+      
+      // Delete issued meals
+      await runQuery('DELETE FROM issued_meals WHERE user_id = ?', [id])
+      
+      // Delete subscriptions
+      await runQuery('DELETE FROM subscriptions WHERE user_id = ?', [id])
+      
+      // Delete notifications
+      await runQuery('DELETE FROM notifications WHERE user_id = ?', [id])
+      
+      // Delete purchase requests (if chef)
+      await runQuery('DELETE FROM purchase_requests WHERE created_by = ?', [id])
+      
+      // Delete menu requests (if chef)
+      await runQuery('DELETE FROM menu_requests WHERE created_by = ?', [id])
+      
+      // Delete password reset tokens
+      await runQuery('DELETE FROM password_reset_tokens WHERE user_id = ?', [id])
+      
+      // Delete reviews
+      await runQuery('DELETE FROM reviews WHERE user_id = ?', [id])
+      
+      // Delete transaction logs
+      await runQuery('DELETE FROM transaction_logs WHERE user_id = ?', [id])
+      
+      console.log(`🗑️ Deleted all related data for user ${user.email}`)
+    } catch (relatedError) {
+      console.error('Error deleting related data:', relatedError)
+      // Continue with user deletion even if some related data fails
+    }
+
     // Delete user
     await runQuery('DELETE FROM users WHERE id = ?', [id])
 
@@ -544,7 +579,11 @@ router.delete('/users/:id', async (req, res) => {
     res.json({ message: 'Пользователь удален' })
   } catch (error) {
     console.error('Delete user error:', error)
-    res.status(500).json({ error: 'Ошибка удаления пользователя' })
+    console.error('Error details:', error.message)
+    res.status(500).json({ 
+      error: 'Ошибка удаления пользователя',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 })
 
