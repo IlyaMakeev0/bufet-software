@@ -14,6 +14,7 @@ function AdminDashboard({ user }) {
   const [reports, setReports] = useState(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [notification, setNotification] = useState(null)
+  const [loading, setLoading] = useState(false)
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [selectedMenuRequest, setSelectedMenuRequest] = useState(null)
@@ -38,6 +39,8 @@ function AdminDashboard({ user }) {
     balance: '',
     password: ''
   })
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [userToDelete, setUserToDelete] = useState(null)
 
   const showNotification = (message, type = 'success') => {
     setNotification({ message, type })
@@ -50,6 +53,7 @@ function AdminDashboard({ user }) {
 
   const loadData = async () => {
     try {
+      setLoading(true)
       const [statsRes, usersRes, ordersRes, purchaseRes, menuReqRes] = await Promise.all([
         fetch('/api/admin/stats'),
         fetch('/api/admin/users'),
@@ -58,29 +62,66 @@ function AdminDashboard({ user }) {
         fetch('/api/admin/menu-requests')
       ])
 
-      if (statsRes.ok) setStats(await statsRes.json())
-      if (usersRes.ok) setUsers(await usersRes.json())
-      if (ordersRes.ok) setRecentOrders(await ordersRes.json())
-      if (purchaseRes.ok) setPurchaseRequests(await purchaseRes.json())
-      if (menuReqRes.ok) setMenuRequests(await menuReqRes.json())
+      if (statsRes.ok) {
+        setStats(await statsRes.json())
+      } else {
+        console.error('Failed to load stats:', await statsRes.text())
+      }
+
+      if (usersRes.ok) {
+        setUsers(await usersRes.json())
+      } else {
+        console.error('Failed to load users:', await usersRes.text())
+      }
+
+      if (ordersRes.ok) {
+        setRecentOrders(await ordersRes.json())
+      } else {
+        console.error('Failed to load orders:', await ordersRes.text())
+      }
+
+      if (purchaseRes.ok) {
+        setPurchaseRequests(await purchaseRes.json())
+      } else {
+        console.error('Failed to load purchase requests:', await purchaseRes.text())
+      }
+
+      if (menuReqRes.ok) {
+        setMenuRequests(await menuReqRes.json())
+      } else {
+        console.error('Failed to load menu requests:', await menuReqRes.text())
+      }
     } catch (error) {
       console.error('Failed to load data:', error)
+      showNotification('Ошибка загрузки данных', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
   const loadReports = async () => {
     try {
+      setLoading(true)
       const res = await fetch(`/api/admin/reports?startDate=${reportDateRange.startDate}&endDate=${reportDateRange.endDate}`)
       if (res.ok) {
         setReports(await res.json())
+      } else {
+        const error = await res.json()
+        showNotification(error.error || 'Ошибка загрузки отчетов', 'error')
       }
     } catch (error) {
       console.error('Failed to load reports:', error)
+      showNotification('Ошибка подключения к серверу', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
   const updatePurchaseRequestStatus = async (id, status) => {
+    if (!id || !status) return
+
     try {
+      setLoading(true)
       const res = await fetch(`/api/admin/purchase-requests/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -89,17 +130,24 @@ function AdminDashboard({ user }) {
 
       if (res.ok) {
         showNotification(`✅ Статус заявки обновлен: ${status}`, 'success')
-        loadData()
+        await loadData()
       } else {
-        showNotification('Ошибка обновления статуса', 'error')
+        const error = await res.json()
+        showNotification(error.error || 'Ошибка обновления статуса', 'error')
       }
     } catch (error) {
+      console.error('Update purchase request error:', error)
       showNotification('Ошибка подключения к серверу', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
   const approveMenuRequest = async () => {
+    if (!selectedMenuRequest) return
+
     try {
+      setLoading(true)
       const res = await fetch(`/api/admin/menu-requests/${selectedMenuRequest.id}/approve`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,35 +163,48 @@ function AdminDashboard({ user }) {
           endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           adminComment: ''
         })
-        loadData()
+        await loadData()
       } else {
         const error = await res.json()
         showNotification(error.error || 'Ошибка одобрения заявки', 'error')
       }
     } catch (error) {
+      console.error('Approve menu request error:', error)
       showNotification('Ошибка подключения к серверу', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
   const rejectMenuRequest = async () => {
+    if (!selectedMenuRequest || !rejectionComment.trim()) {
+      showNotification('Укажите причину отклонения', 'error')
+      return
+    }
+
     try {
+      setLoading(true)
       const res = await fetch(`/api/admin/menu-requests/${selectedMenuRequest.id}/reject`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminComment: rejectionComment })
+        body: JSON.stringify({ adminComment: rejectionComment.trim() })
       })
 
       if (res.ok) {
-        showNotification('Заявка отклонена', 'success')
+        showNotification('✅ Заявка отклонена', 'success')
         setShowRejectModal(false)
         setSelectedMenuRequest(null)
         setRejectionComment('')
-        loadData()
+        await loadData()
       } else {
-        showNotification('Ошибка отклонения заявки', 'error')
+        const error = await res.json()
+        showNotification(error.error || 'Ошибка отклонения заявки', 'error')
       }
     } catch (error) {
+      console.error('Reject menu request error:', error)
       showNotification('Ошибка подключения к серверу', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -164,46 +225,89 @@ function AdminDashboard({ user }) {
   const handleUpdateUser = async (e) => {
     e.preventDefault()
 
-    try {
-      const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editUserData)
-      })
-
-      if (res.ok) {
-        showNotification('SUCCESS: Данные пользователя обновлены', 'success')
-        setShowEditUserModal(false)
-        setSelectedUser(null)
-        loadData()
-      } else {
-        const error = await res.json()
-        showNotification(`ERROR: ${error.error}`, 'error')
-      }
-    } catch (error) {
-      showNotification('ERROR: Ошибка подключения к серверу', 'error')
-    }
-  }
-
-  const handleDeleteUser = async (userId) => {
-    if (!confirm('Вы уверены, что хотите удалить этого пользователя?')) {
+    if (!selectedUser) {
+      showNotification('Ошибка: пользователь не выбран', 'error')
       return
     }
 
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
+      setLoading(true)
+      
+      // Подготовка данных для отправки
+      const updateData = {
+        firstName: editUserData.firstName.trim(),
+        lastName: editUserData.lastName.trim(),
+        email: editUserData.email.trim(),
+        phone: editUserData.phone?.trim() || null,
+        className: editUserData.className?.trim() || null,
+        balance: editUserData.balance ? parseFloat(editUserData.balance) : null,
+        password: editUserData.password?.trim() || null
+      }
+
+      const res = await fetch(`/api/admin/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      })
+
+      if (res.ok) {
+        showNotification('✅ Данные пользователя успешно обновлены', 'success')
+        setShowEditUserModal(false)
+        setSelectedUser(null)
+        setEditUserData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          className: '',
+          balance: '',
+          password: ''
+        })
+        await loadData()
+      } else {
+        const error = await res.json()
+        showNotification(`Ошибка: ${error.error || 'Не удалось обновить данные'}`, 'error')
+      }
+    } catch (error) {
+      console.error('Update user error:', error)
+      showNotification('Ошибка подключения к серверу', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const confirmDeleteUser = (user) => {
+    if (user.id === user.id) {
+      showNotification('Нельзя удалить свой собственный аккаунт', 'error')
+      return
+    }
+    setUserToDelete(user)
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return
+
+    try {
+      setLoading(true)
+      const res = await fetch(`/api/admin/users/${userToDelete.id}`, {
         method: 'DELETE'
       })
 
       if (res.ok) {
-        showNotification('SUCCESS: Пользователь удален', 'success')
-        loadData()
+        showNotification('✅ Пользователь успешно удален', 'success')
+        setShowDeleteConfirm(false)
+        setUserToDelete(null)
+        await loadData()
       } else {
         const error = await res.json()
-        showNotification(`ERROR: ${error.error}`, 'error')
+        showNotification(`Ошибка: ${error.error || 'Не удалось удалить пользователя'}`, 'error')
       }
     } catch (error) {
-      showNotification('ERROR: Ошибка подключения к серверу', 'error')
+      console.error('Delete user error:', error)
+      showNotification('Ошибка подключения к серверу', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -294,11 +398,19 @@ function AdminDashboard({ user }) {
       {/* Overview Tab */}
       {activeTab === 'overview' && (
         <div className="section">
-          <h2>Последние заказы</h2>
-          {recentOrders.length === 0 ? (
-            <p>Нет заказов</p>
+          <h2>📊 Последние заказы</h2>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <div className="loading-spinner"></div>
+              <p style={{ marginTop: '20px', color: '#90caf9' }}>Загрузка заказов...</p>
+            </div>
+          ) : recentOrders.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">📦</div>
+              <div className="empty-state-text">Нет заказов</div>
+            </div>
           ) : (
-            <div className="table-container">
+            <div className="admin-table-wrapper">
               <table>
                 <thead>
                   <tr>
@@ -312,12 +424,12 @@ function AdminDashboard({ user }) {
                 <tbody>
                   {recentOrders.map(order => (
                     <tr key={order.id}>
-                      <td>{order.studentName}</td>
+                      <td><strong>{order.studentName}</strong></td>
                       <td>{order.menuName}</td>
-                      <td>{order.price} ₽</td>
+                      <td><strong>{order.price.toFixed(2)} ₽</strong></td>
                       <td>
                         <span className={`status-badge ${order.status === 'оплачен' ? 'paid' : 'pending'}`}>
-                          {order.status}
+                          {order.status === 'оплачен' ? '✅ Оплачен' : '⏳ Ожидает'}
                         </span>
                       </td>
                       <td>{new Date(order.createdAt).toLocaleString('ru-RU')}</td>
@@ -333,11 +445,19 @@ function AdminDashboard({ user }) {
       {/* Users Tab */}
       {activeTab === 'users' && (
         <div className="section">
-          <h2>Пользователи</h2>
-          {users.length === 0 ? (
-            <p>Нет зарегистрированных пользователей</p>
+          <h2>👥 Управление пользователями</h2>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <div className="loading-spinner"></div>
+              <p style={{ marginTop: '20px', color: '#90caf9' }}>Загрузка пользователей...</p>
+            </div>
+          ) : users.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">👤</div>
+              <div className="empty-state-text">Нет зарегистрированных пользователей</div>
+            </div>
           ) : (
-            <div className="table-container">
+            <div className="admin-table-wrapper">
               <table>
                 <thead>
                   <tr>
@@ -347,37 +467,41 @@ function AdminDashboard({ user }) {
                     <th>Класс/Должность</th>
                     <th>Баланс</th>
                     <th>Дата регистрации</th>
-                    <th>Действия</th>
+                    <th style={{ textAlign: 'center' }}>Действия</th>
                   </tr>
                 </thead>
                 <tbody>
                   {users.map(u => (
                     <tr key={u.id}>
-                      <td>{u.firstName} {u.lastName}</td>
+                      <td><strong>{u.firstName} {u.lastName}</strong></td>
                       <td>{u.email}</td>
                       <td>
                         <span className={`status-badge ${u.role}`}>
-                          {u.role === 'student' ? 'Ученик' : 
-                           u.role === 'chef' ? 'Повар' : 'Администратор'}
+                          {u.role === 'student' ? '🎓 Ученик' : 
+                           u.role === 'chef' ? '👨‍🍳 Повар' : '👑 Администратор'}
                         </span>
                       </td>
                       <td>{u.className || u.position || '-'}</td>
-                      <td>{u.role === 'student' ? `${u.balance} ₽` : '-'}</td>
+                      <td>{u.role === 'student' ? `${u.balance.toFixed(2)} ₽` : '-'}</td>
                       <td>{new Date(u.createdAt).toLocaleDateString('ru-RU')}</td>
                       <td>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                           <button
                             className="btn btn-sm btn-primary"
                             onClick={() => openEditUserModal(u)}
+                            disabled={loading}
+                            title="Редактировать пользователя"
                           >
-                            Изменить
+                            ✏️ Изменить
                           </button>
                           {u.id !== user.id && (
                             <button
                               className="btn btn-sm btn-danger"
-                              onClick={() => handleDeleteUser(u.id)}
+                              onClick={() => confirmDeleteUser(u)}
+                              disabled={loading}
+                              title="Удалить пользователя"
                             >
-                              Удалить
+                              🗑️ Удалить
                             </button>
                           )}
                         </div>
@@ -394,11 +518,19 @@ function AdminDashboard({ user }) {
       {/* Purchase Requests Tab */}
       {activeTab === 'purchase' && (
         <div className="section">
-          <h2>Заявки на закупку</h2>
-          {purchaseRequests.length === 0 ? (
-            <p>Нет заявок на закупку</p>
+          <h2>🛒 Заявки на закупку</h2>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <div className="loading-spinner"></div>
+              <p style={{ marginTop: '20px', color: '#90caf9' }}>Загрузка заявок...</p>
+            </div>
+          ) : purchaseRequests.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-state-icon">📋</div>
+              <div className="empty-state-text">Нет заявок на закупку</div>
+            </div>
           ) : (
-            <div className="table-container">
+            <div className="admin-table-wrapper">
               <table>
                 <thead>
                   <tr>
@@ -408,7 +540,7 @@ function AdminDashboard({ user }) {
                     <th>Создал</th>
                     <th>Статус</th>
                     <th>Дата</th>
-                    <th>Действия</th>
+                    <th style={{ textAlign: 'center' }}>Действия</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -418,31 +550,36 @@ function AdminDashboard({ user }) {
                       <td>{request.quantity} {request.unit}</td>
                       <td>
                         <span className={`urgency-badge ${request.urgency}`}>
-                          {request.urgency === 'срочная' ? 'Срочная' : 
-                           request.urgency === 'высокая' ? 'Высокая' : 'Обычная'}
+                          {request.urgency === 'срочная' ? '🔴 Срочная' : 
+                           request.urgency === 'высокая' ? '🟠 Высокая' : '🟢 Обычная'}
                         </span>
                       </td>
                       <td>{request.createdByName}</td>
                       <td>
                         <span className={`status-badge ${request.status}`}>
-                          {request.status}
+                          {request.status === 'ожидает' ? '⏳ Ожидает' :
+                           request.status === 'одобрена' ? '✅ Одобрена' : '❌ Отклонена'}
                         </span>
                       </td>
                       <td>{new Date(request.createdAt).toLocaleDateString('ru-RU')}</td>
                       <td>
                         {request.status === 'ожидает' && (
-                          <div style={{ display: 'flex', gap: '5px' }}>
+                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                             <button
                               className="btn btn-sm btn-success"
                               onClick={() => updatePurchaseRequestStatus(request.id, 'одобрена')}
+                              disabled={loading}
+                              title="Одобрить заявку"
                             >
-                              ✓
+                              ✅
                             </button>
                             <button
                               className="btn btn-sm btn-danger"
                               onClick={() => updatePurchaseRequestStatus(request.id, 'отклонена')}
+                              disabled={loading}
+                              title="Отклонить заявку"
                             >
-                              ✕
+                              ❌
                             </button>
                           </div>
                         )}
@@ -603,9 +740,9 @@ function AdminDashboard({ user }) {
 
       {/* Approve Modal */}
       {showApproveModal && selectedMenuRequest && (
-        <div className="modal-overlay" onClick={() => setShowApproveModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>✓ Одобрить блюдо: {selectedMenuRequest.name}</h2>
+        <div className="modal-overlay" onClick={() => !loading && setShowApproveModal(false)}>
+          <div className="modal-content admin-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>✅ Одобрить блюдо: {selectedMenuRequest.name}</h2>
             
             <div className="form-group">
               <label>Дата начала *</label>
@@ -614,6 +751,7 @@ function AdminDashboard({ user }) {
                 value={approvalData.startDate}
                 onChange={(e) => setApprovalData({...approvalData, startDate: e.target.value})}
                 required
+                disabled={loading}
               />
             </div>
 
@@ -624,25 +762,35 @@ function AdminDashboard({ user }) {
                 value={approvalData.endDate}
                 onChange={(e) => setApprovalData({...approvalData, endDate: e.target.value})}
                 required
+                disabled={loading}
               />
             </div>
 
             <div className="form-group">
-              <label>Комментарий</label>
+              <label>Комментарий для повара</label>
               <textarea
                 value={approvalData.adminComment}
                 onChange={(e) => setApprovalData({...approvalData, adminComment: e.target.value})}
                 placeholder="Комментарий для повара (необязательно)"
                 rows="3"
+                disabled={loading}
               />
             </div>
 
             <div className="modal-actions">
-              <button className="btn btn-success" onClick={approveMenuRequest}>
-                Одобрить и добавить в меню
+              <button 
+                className="btn btn-success" 
+                onClick={approveMenuRequest}
+                disabled={loading}
+              >
+                {loading ? '⏳ Одобрение...' : '✅ Одобрить и добавить в меню'}
               </button>
-              <button className="btn btn-secondary" onClick={() => setShowApproveModal(false)}>
-                Отмена
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowApproveModal(false)}
+                disabled={loading}
+              >
+                ❌ Отмена
               </button>
             </div>
           </div>
@@ -651,9 +799,9 @@ function AdminDashboard({ user }) {
 
       {/* Reject Modal */}
       {showRejectModal && selectedMenuRequest && (
-        <div className="modal-overlay" onClick={() => setShowRejectModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>✕ Отклонить блюдо: {selectedMenuRequest.name}</h2>
+        <div className="modal-overlay" onClick={() => !loading && setShowRejectModal(false)}>
+          <div className="modal-content admin-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>❌ Отклонить блюдо: {selectedMenuRequest.name}</h2>
             
             <div className="form-group">
               <label>Причина отклонения *</label>
@@ -663,18 +811,24 @@ function AdminDashboard({ user }) {
                 placeholder="Укажите причину отклонения заявки"
                 rows="4"
                 required
+                disabled={loading}
               />
+              <small>Повар увидит эту причину</small>
             </div>
 
             <div className="modal-actions">
               <button 
                 className="btn btn-danger" 
                 onClick={rejectMenuRequest}
-                disabled={!rejectionComment}
+                disabled={!rejectionComment.trim() || loading}
               >
-                Отклонить заявку
+                {loading ? '⏳ Отклонение...' : '❌ Отклонить заявку'}
               </button>
-              <button className="btn btn-secondary" onClick={() => setShowRejectModal(false)}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setShowRejectModal(false)}
+                disabled={loading}
+              >
                 Отмена
               </button>
             </div>
@@ -684,9 +838,9 @@ function AdminDashboard({ user }) {
       
       {/* Edit User Modal */}
       {showEditUserModal && selectedUser && (
-        <div className="modal-overlay" onClick={() => setShowEditUserModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Редактирование пользователя</h2>
+        <div className="modal-overlay" onClick={() => !loading && setShowEditUserModal(false)}>
+          <div className="modal-content admin-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>✏️ Редактирование пользователя</h2>
             
             <form onSubmit={handleUpdateUser}>
               <div className="form-group">
@@ -696,6 +850,8 @@ function AdminDashboard({ user }) {
                   value={editUserData.firstName}
                   onChange={(e) => setEditUserData({...editUserData, firstName: e.target.value})}
                   required
+                  disabled={loading}
+                  placeholder="Введите имя"
                 />
               </div>
 
@@ -706,6 +862,8 @@ function AdminDashboard({ user }) {
                   value={editUserData.lastName}
                   onChange={(e) => setEditUserData({...editUserData, lastName: e.target.value})}
                   required
+                  disabled={loading}
+                  placeholder="Введите фамилию"
                 />
               </div>
 
@@ -716,6 +874,8 @@ function AdminDashboard({ user }) {
                   value={editUserData.email}
                   onChange={(e) => setEditUserData({...editUserData, email: e.target.value})}
                   required
+                  disabled={loading}
+                  placeholder="email@example.com"
                 />
               </div>
 
@@ -726,6 +886,7 @@ function AdminDashboard({ user }) {
                   value={editUserData.phone}
                   onChange={(e) => setEditUserData({...editUserData, phone: e.target.value})}
                   placeholder="79991234567"
+                  disabled={loading}
                 />
               </div>
 
@@ -738,6 +899,7 @@ function AdminDashboard({ user }) {
                       value={editUserData.className}
                       onChange={(e) => setEditUserData({...editUserData, className: e.target.value})}
                       placeholder="10А"
+                      disabled={loading}
                     />
                   </div>
 
@@ -749,36 +911,107 @@ function AdminDashboard({ user }) {
                       value={editUserData.balance}
                       onChange={(e) => setEditUserData({...editUserData, balance: e.target.value})}
                       placeholder="1000"
+                      disabled={loading}
                     />
                   </div>
                 </>
               )}
 
               <div className="form-group">
-                <label>Новый пароль (оставьте пустым, если не хотите менять)</label>
+                <label>Новый пароль</label>
                 <input
                   type="password"
                   value={editUserData.password}
                   onChange={(e) => setEditUserData({...editUserData, password: e.target.value})}
-                  placeholder="Введите новый пароль"
+                  placeholder="Оставьте пустым, если не хотите менять"
                   minLength="6"
+                  disabled={loading}
                 />
-                <small>Минимум 6 символов</small>
+                <small>Минимум 6 символов. Оставьте пустым, если не хотите менять пароль.</small>
               </div>
 
               <div className="modal-actions">
-                <button type="submit" className="btn btn-success">
-                  Сохранить изменения
+                <button type="submit" className="btn btn-success" disabled={loading}>
+                  {loading ? '⏳ Сохранение...' : '✅ Сохранить изменения'}
                 </button>
                 <button 
                   type="button" 
                   className="btn btn-secondary"
                   onClick={() => setShowEditUserModal(false)}
+                  disabled={loading}
                 >
-                  Отмена
+                  ❌ Отмена
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && userToDelete && (
+        <div className="modal-overlay" onClick={() => !loading && setShowDeleteConfirm(false)}>
+          <div className="modal-content admin-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>⚠️ Подтверждение удаления</h2>
+            
+            <div style={{ padding: '20px 0' }}>
+              <p style={{ fontSize: '1.1em', marginBottom: '15px' }}>
+                Вы действительно хотите удалить пользователя?
+              </p>
+              
+              <div style={{ 
+                background: '#fff3cd', 
+                border: '2px solid #ffc107', 
+                borderRadius: '8px', 
+                padding: '15px',
+                marginBottom: '20px'
+              }}>
+                <p style={{ margin: '5px 0', fontWeight: 'bold' }}>
+                  <strong>Имя:</strong> {userToDelete.firstName} {userToDelete.lastName}
+                </p>
+                <p style={{ margin: '5px 0' }}>
+                  <strong>Email:</strong> {userToDelete.email}
+                </p>
+                <p style={{ margin: '5px 0' }}>
+                  <strong>Роль:</strong> {
+                    userToDelete.role === 'student' ? 'Ученик' : 
+                    userToDelete.role === 'chef' ? 'Повар' : 'Администратор'
+                  }
+                </p>
+              </div>
+
+              <div style={{ 
+                background: '#ffebee', 
+                border: '2px solid #f44336', 
+                borderRadius: '8px', 
+                padding: '15px',
+                color: '#c62828'
+              }}>
+                <p style={{ margin: 0, fontWeight: 'bold' }}>
+                  ⚠️ Внимание! Это действие нельзя отменить.
+                </p>
+                <p style={{ margin: '10px 0 0 0' }}>
+                  Все данные пользователя будут удалены безвозвратно.
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                className="btn btn-danger" 
+                onClick={handleDeleteUser}
+                disabled={loading}
+              >
+                {loading ? '⏳ Удаление...' : '🗑️ Да, удалить пользователя'}
+              </button>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={loading}
+              >
+                ❌ Отмена
+              </button>
+            </div>
           </div>
         </div>
       )}

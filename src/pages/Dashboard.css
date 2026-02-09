@@ -1998,6 +1998,329 @@ body.light-theme .inventory-card p {
   opacity: 1 !important;
 }
 
+/* ============================================
+   ADMIN PANEL IMPROVEMENTS
+   Дата: 9 февраля 2026
+   ============================================ */
+
+/* Admin Modal Improvements */
+.admin-modal {
+  max-width: 700px !important;
+  padding: 40px !important;
+}
+
+.admin-modal h2 {
+  font-size: 1.6em !important;
+  margin-bottom: 30px !important;
+  text-align: center !important;
+  padding-bottom: 15px !important;
+  border-bottom: 3px solid #1565c0 !important;
+}
+
+.admin-modal .form-group {
+  margin-bottom: 20px !important;
+}
+
+.admin-modal .form-group label {
+  display: block !important;
+  font-size: 1em !important;
+  font-weight: 700 !important;
+  margin-bottom: 8px !important;
+  color: #2c3e50 !important;
+}
+
+.admin-modal .form-group input,
+.admin-modal .form-group select,
+.admin-modal .form-group textarea {
+  width: 100% !important;
+  padding: 12px 16px !important;
+  font-size: 1em !important;
+  border: 2px solid #bdc3c7 !important;
+  border-radius: 6px !important;
+  background: #ecf0f1 !important;
+  color: #2c3e50 !important;
+  transition: all 0.3s !important;
+}
+
+.admin-modal .form-group input:focus,
+.admin-modal .form-group select:focus,
+.admin-modal .form-group textarea:focus {
+  border-color: #1565c0 !important;
+  background: #ffffff !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.1) !important;
+}
+
+.admin-modal .form-group input:disabled,
+.admin-modal .form-group select:disabled,
+.admin-modal .form-group textarea:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+.admin-modal .form-group small {
+  display: block !important;
+  margin-top: 6px !important;
+  font-size: 0.85em !important;
+  color: #7f8c8d !important;
+}
+
+.admin-modal .modal-actions {
+  display: flex !important;
+  gap: 15px !important;
+  margin-top: 30px !important;
+  padding-top: 20px !important;
+  border-top: 2px solid #ecf0f1 !important;
+}
+
+.admin-modal .modal-actions button {
+  flex: 1 !important;
+  padding: 14px 24px !important;
+  font-size: 1em !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: all 0.3s !important;
+  border: none !important;
+}
+
+.admin-modal .modal-actions button:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+.admin-modal .btn-success {
+  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%) !important;
+  color: #ffffff !important;
+}
+
+.admin-modal .btn-success:hover:not(:disabled) {
+  background: linear-gradient(135deg, #388e3c 0%, #4caf50 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4) !important;
+}
+
+.admin-modal .btn-danger {
+  background: linear-gradient(135deg, #f44336 0%, #e57373 100%) !important;
+  color: #ffffff !important;
+}
+
+.admin-modal .btn-danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d32f2f 0%, #f44336 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4) !important;
+}
+
+.admin-modal .btn-secondary {
+  background: #95a5a6 !important;
+  color: #ffffff !important;
+}
+
+.admin-modal .btn-secondary:hover:not(:disabled) {
+  background: #7f8c8d !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(127, 140, 141, 0.4) !important;
+}
+
+/* Admin Table Improvements */
+.admin-table-wrapper {
+  overflow-x: auto !important;
+  border-radius: 8px !important;
+  border: 2px solid #37474f !important;
+  margin-top: 20px !important;
+}
+
+.admin-table-wrapper table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  background: #1a1a2e !important;
+}
+
+.admin-table-wrapper th {
+  background: #16213e !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  font-size: 0.9em !important;
+  padding: 16px 12px !important;
+  text-align: left !important;
+  border-bottom: 2px solid #1565c0 !important;
+}
+
+.admin-table-wrapper td {
+  padding: 14px 12px !important;
+  color: #e4e4e4 !important;
+  border-bottom: 1px solid #37474f !important;
+  vertical-align: middle !important;
+}
+
+.admin-table-wrapper tr:hover {
+  background: #16213e !important;
+}
+
+.admin-table-wrapper tr:last-child td {
+  border-bottom: none !important;
+}
+
+/* Button improvements in tables */
+.admin-table-wrapper .btn-sm {
+  padding: 8px 14px !important;
+  font-size: 0.85em !important;
+  font-weight: 600 !important;
+  border-radius: 4px !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  border: none !important;
+  white-space: nowrap !important;
+}
+
+.admin-table-wrapper .btn-primary {
+  background: #1565c0 !important;
+  color: #ffffff !important;
+}
+
+.admin-table-wrapper .btn-primary:hover:not(:disabled) {
+  background: #0d47a1 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(21, 101, 192, 0.4) !important;
+}
+
+.admin-table-wrapper .btn-danger {
+  background: #d32f2f !important;
+  color: #ffffff !important;
+}
+
+.admin-table-wrapper .btn-danger:hover:not(:disabled) {
+  background: #b71c1c !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4) !important;
+}
+
+.admin-table-wrapper .btn-success {
+  background: #4caf50 !important;
+  color: #ffffff !important;
+}
+
+.admin-table-wrapper .btn-success:hover:not(:disabled) {
+  background: #388e3c !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4) !important;
+}
+
+.admin-table-wrapper button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+/* Status badges improvements */
+.status-badge {
+  padding: 6px 12px !important;
+  border-radius: 4px !important;
+  font-size: 0.8em !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  white-space: nowrap !important;
+  display: inline-block !important;
+}
+
+.status-badge.student {
+  background: #1976d2 !important;
+  color: #ffffff !important;
+}
+
+.status-badge.chef {
+  background: #f57c00 !important;
+  color: #ffffff !important;
+}
+
+.status-badge.admin {
+  background: #7b1fa2 !important;
+  color: #ffffff !important;
+}
+
+/* Loading state */
+.loading-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.7) !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 9999 !important;
+}
+
+.loading-spinner {
+  width: 60px !important;
+  height: 60px !important;
+  border: 6px solid #ecf0f1 !important;
+  border-top-color: #1565c0 !important;
+  border-radius: 50% !important;
+  animation: spin 1s linear infinite !important;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center !important;
+  padding: 60px 20px !important;
+  color: #90caf9 !important;
+}
+
+.empty-state-icon {
+  font-size: 4em !important;
+  margin-bottom: 20px !important;
+  opacity: 0.5 !important;
+}
+
+.empty-state-text {
+  font-size: 1.2em !important;
+  color: #b0bec5 !important;
+}
+
+/* Light theme adjustments */
+body.light-theme .admin-table-wrapper {
+  border-color: #bdc3c7 !important;
+}
+
+body.light-theme .admin-table-wrapper table {
+  background: #ffffff !important;
+}
+
+body.light-theme .admin-table-wrapper th {
+  background: #ecf0f1 !important;
+  color: #2c3e50 !important;
+  border-bottom-color: #1565c0 !important;
+}
+
+body.light-theme .admin-table-wrapper td {
+  color: #2c3e50 !important;
+  border-bottom-color: #ecf0f1 !important;
+}
+
+body.light-theme .admin-table-wrapper tr:hover {
+  background: #f8f9fa !important;
+}
+
+body.light-theme .empty-state {
+  color: #546e7a !important;
+}
+
+body.light-theme .empty-state-text {
+  color: #7f8c8d !important;
+}
+
+/* ============================================
+   END ADMIN PANEL IMPROVEMENTS
+   ============================================ */
+
 /* Select options */
 .modal-content select option {
   color: #2c3e50 !important;

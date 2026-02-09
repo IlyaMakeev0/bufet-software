@@ -413,9 +413,6 @@ router.get('/reports', async (req, res) => {
   }
 })
 
-export default router
-
-
 // Update user data (admin only)
 router.put('/users/:id', async (req, res) => {
   try {
@@ -431,27 +428,58 @@ router.put('/users/:id', async (req, res) => {
       return res.status(400).json({ error: 'Имя, фамилия и email обязательны' })
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Неверный формат email' })
+    }
+
+    // Check if user exists
+    const existingUser = await getQuery('SELECT id, role FROM users WHERE id = ?', [id])
+    if (!existingUser) {
+      return res.status(404).json({ error: 'Пользователь не найден' })
+    }
+
     // Check if email is already taken by another user
-    const existingUser = await getQuery('SELECT id FROM users WHERE email = ? AND id != ?', [email, id])
-    if (existingUser) {
+    const emailCheck = await getQuery('SELECT id FROM users WHERE email = ? AND id != ?', [email, id])
+    if (emailCheck) {
       return res.status(400).json({ error: 'Email уже используется другим пользователем' })
     }
 
     // Build update query
     let updateQuery = `
       UPDATE users 
-      SET first_name = ?, last_name = ?, email = ?, phone = ?, class_name = ?
+      SET first_name = ?, last_name = ?, email = ?
     `
-    let params = [firstName, lastName, email, phone, className]
+    let params = [firstName.trim(), lastName.trim(), email.trim()]
 
-    // Add balance if provided
-    if (balance !== undefined && balance !== null) {
+    // Add phone if provided
+    if (phone !== undefined && phone !== null) {
+      updateQuery += ', phone = ?'
+      params.push(phone.trim() || null)
+    }
+
+    // Add className if provided
+    if (className !== undefined && className !== null) {
+      updateQuery += ', class_name = ?'
+      params.push(className.trim() || null)
+    }
+
+    // Add balance if provided and user is student
+    if (balance !== undefined && balance !== null && existingUser.role === 'student') {
+      const balanceNum = parseFloat(balance)
+      if (isNaN(balanceNum) || balanceNum < 0) {
+        return res.status(400).json({ error: 'Неверное значение баланса' })
+      }
       updateQuery += ', balance = ?'
-      params.push(parseFloat(balance))
+      params.push(balanceNum)
     }
 
     // Add password if provided
     if (password && password.trim() !== '') {
+      if (password.length < 6) {
+        return res.status(400).json({ error: 'Пароль должен содержать минимум 6 символов' })
+      }
       const bcrypt = await import('bcryptjs')
       const hashedPassword = await bcrypt.default.hash(password, 10)
       updateQuery += ', password = ?'
@@ -463,6 +491,7 @@ router.put('/users/:id', async (req, res) => {
 
     await runQuery(updateQuery, params)
 
+    console.log(`✅ Admin ${req.session.user.email} updated user ${id}`)
     res.json({ message: 'Данные пользователя обновлены' })
   } catch (error) {
     console.error('Update user error:', error)
@@ -484,11 +513,21 @@ router.delete('/users/:id', async (req, res) => {
       return res.status(400).json({ error: 'Нельзя удалить свой собственный аккаунт' })
     }
 
+    // Check if user exists
+    const user = await getQuery('SELECT id, email, role FROM users WHERE id = ?', [id])
+    if (!user) {
+      return res.status(404).json({ error: 'Пользователь не найден' })
+    }
+
+    // Delete user
     await runQuery('DELETE FROM users WHERE id = ?', [id])
 
+    console.log(`✅ Admin ${req.session.user.email} deleted user ${user.email} (${user.role})`)
     res.json({ message: 'Пользователь удален' })
   } catch (error) {
     console.error('Delete user error:', error)
     res.status(500).json({ error: 'Ошибка удаления пользователя' })
   }
 })
+
+export default router
