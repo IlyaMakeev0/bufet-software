@@ -276,12 +276,12 @@ function AdminDashboard({ user }) {
     }
   }
 
-  const confirmDeleteUser = (user) => {
-    if (user.id === user.id) {
+  const confirmDeleteUser = (userToDelete) => {
+    if (userToDelete.id === user.id) {
       showNotification('Нельзя удалить свой собственный аккаунт', 'error')
       return
     }
-    setUserToDelete(user)
+    setUserToDelete(userToDelete)
     setShowDeleteConfirm(true)
   }
 
